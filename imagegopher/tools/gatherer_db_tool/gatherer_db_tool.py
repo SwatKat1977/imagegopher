@@ -82,7 +82,7 @@ def main(argv : list) -> None:
         db_connection.close()
         return
 
-    print("[INFO] Database successfull created!")
+    print("[INFO] Database successfully created!")
 
 if __name__ == '__main__':
     main(sys.argv[1:])
