@@ -20,6 +20,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 import logging
 import quart
 from microservice import Microservice
+import version
 
 class Service(Microservice):
     """ Gopher Service microservice """
@@ -36,6 +37,28 @@ class Service(Microservice):
         console_stream.setFormatter(log_format)
         self._logger.addHandler(console_stream)
         self._logger.setLevel("INFO")
+
+    def _initialise(self) -> bool:
+        '''
+        Method for the application initialisation.  It should return a boolean
+       (True => Successful, False => Unsuccessful).
+
+        returns:
+            Boolean: True => Successful, False => Unsuccessful.
+        '''
+
+        version_post : str = "" if version.VERSION_POST == "" \
+                             else f"-{version.VERSION_POST}"
+        version_str : str = (f"{version.VERSION_MAJOR}."
+                             f"{version.VERSION_MINOR}."
+                             f"{version.VERSION_BUGFIX}"
+                             f"{version_post}")
+
+        self._logger.info("Image Gopher Gatherer Microservice V%s",
+                          version_str)
+        self._logger.info("Copyright 2024 Image Gopher Development Team")
+
+        return True
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
