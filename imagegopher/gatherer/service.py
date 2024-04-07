@@ -18,17 +18,22 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
+import os
 import quart
-from microservice import Microservice
-import version
+from configuration_layout import CONFIGURATION_LAYOUT
+from shared.configuration.configuration import Configuration
+from shared.microservice import Microservice
+from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
+                           VERSION_POST
 
 class Service(Microservice):
     """ Gopher Service microservice """
-    __slots__ = ["_quart"]
+    __slots__ = ["_config", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
+        self._config : Configuration = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -47,18 +52,56 @@ class Service(Microservice):
             Boolean: True => Successful, False => Unsuccessful.
         '''
 
-        version_post : str = "" if version.VERSION_POST == "" \
-                             else f"-{version.VERSION_POST}"
-        version_str : str = (f"{version.VERSION_MAJOR}."
-                             f"{version.VERSION_MINOR}."
-                             f"{version.VERSION_BUGFIX}"
+        version_post : str = "" if VERSION_POST == "" \
+                             else f"-{VERSION_POST}"
+        version_str : str = (f"{VERSION_MAJOR}."
+                             f"{VERSION_MINOR}."
+                             f"{VERSION_BUGFIX}"
                              f"{version_post}")
 
         self._logger.info("Image Gopher Gatherer Microservice V%s",
                           version_str)
         self._logger.info("Copyright 2024 Image Gopher Development Team")
 
+        config_file = os.getenv("GOPHER_GATHERER_CONFIG", None)
+        config_file_required : bool = os.getenv(
+            "GOPHER_GATHERER_CONFIG_REQUIRED", None)
+        config_file_required = False if not config_file_required \
+                               else config_file_required
+
+        if not config_file and config_file_required:
+            print("[FATAL ERROR] Configuration file missing!")
+            return False
+
+        self._config = Configuration()
+        self._config.configure(CONFIGURATION_LAYOUT,
+                               config_file,
+                               config_file_required)
+
+        try:
+            self._config.process_config()
+
+        except ValueError as ex:
+            self._logger.critical("Configuration error : %s", ex)
+            return False
+
+        self._logger.setLevel(self._config.get_entry("logging", "log_level"))
+
+        self._display_configuration_details()
+
         return True
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
+
+    def _display_configuration_details(self):
+        self._logger.info("Configuration")
+        self._logger.info("=============")
+        self._logger.info("[logging]")
+        self._logger.info("=> Logging log level : %s",
+                          self._config.get_entry("logging", "log_level"))
+        self._logger.info("[database]")
+        self._logger.info("=> Filename          : %s",
+                          self._config.get_entry("database", "filename"))
+        self._logger.info("=> Create If Missing : %s",
+                          self._config.get_entry("database", "create_if_missing"))
