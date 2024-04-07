@@ -15,10 +15,7 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
         "database": [
             configuration_setup.ConfigurationSetupItem(
                 "filename", configuration_setup.ConfigItemDataType.STRING,
-                is_required=True),
-            configuration_setup.ConfigurationSetupItem(
-                "create_if_missing", configuration_setup.ConfigItemDataType.STRING,
-                valid_values=['YES', 'NO'], default_value="NO")
+                is_required=True)
         ]
     }
 )
