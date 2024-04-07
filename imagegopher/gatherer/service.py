@@ -20,6 +20,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 import logging
 import os
 import quart
+import sqlite3
 from configuration_layout import CONFIGURATION_LAYOUT
 from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
@@ -28,12 +29,13 @@ from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
 
 class Service(Microservice):
     """ Gopher Service microservice """
-    __slots__ = ["_config", "_quart"]
+    __slots__ = ["_config", "_db_connection", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
         self._config : Configuration = None
+        self._db_connection : sqlite3.Connection = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -89,6 +91,9 @@ class Service(Microservice):
 
         self._display_configuration_details()
 
+        if not self._connect_to_database():
+            return False
+
         return True
 
     async def _main_loop(self) -> None:
@@ -103,5 +108,21 @@ class Service(Microservice):
         self._logger.info("[database]")
         self._logger.info("=> Filename          : %s",
                           self._config.get_entry("database", "filename"))
-        self._logger.info("=> Create If Missing : %s",
-                          self._config.get_entry("database", "create_if_missing"))
+
+    def _connect_to_database(self) -> bool:
+        connect_status : bool = False
+        db_filename : str = self._config.get_entry("database", "filename")
+
+        if not os.path.isfile(db_filename):
+            self._logger.error("Database file does NOT exist!")
+            return False
+
+        try:
+            self._db_connection = sqlite3.connect(db_filename)
+            db_cursor = self._db_connection.cursor()
+        except sqlite3.OperationalError as ex:
+            self._logger.error("Database connect failed, reason: %s", ex)
+            return False
+
+        self._logger.info("Database connected...")
+        return True
