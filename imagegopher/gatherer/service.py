@@ -17,28 +17,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-import sys
-from quart import Quart
-from service import Service
+import quart
+from microservice import Microservice
 
-app = Quart(__name__)
-SERVICE_APP = None
+class Service(Microservice):
+    """ Gopher Service microservice """
+    __slots__ = ["_quart"]
 
-@app.before_serving
-async def startup() -> None:
-    """
-    Code executed before Quart has started serving http requests.
-    """
-    app.add_background_task(SERVICE_APP.run)
-
-@app.after_serving
-async def shutdown() -> None:
-    """
-    Code executed after Quart has stopped serving http requests.
-    """
-
-    SERVICE_APP.stop()
-
-SERVICE_APP = Service(app)
-if not SERVICE_APP.initialise():
-    sys.exit()
+    def __init__(self, quart_instance) -> None:
+        super().__init__()
+        self._quart : quart.Quart = quart_instance
