@@ -17,6 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+import logging
 import quart
 from microservice import Microservice
 
@@ -27,3 +28,14 @@ class Service(Microservice):
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
+
+        self._logger = logging.getLogger(__name__)
+        log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
+                                      "%Y-%m-%d %H:%M:%S")
+        console_stream = logging.StreamHandler()
+        console_stream.setFormatter(log_format)
+        self._logger.addHandler(console_stream)
+        self._logger.setLevel("INFO")
+
+    async def _main_loop(self) -> None:
+        ''' Main microservice loop. '''
