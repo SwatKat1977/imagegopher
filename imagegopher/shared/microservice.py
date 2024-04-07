@@ -20,7 +20,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 import asyncio
 import logging
 
-class BaseApplication:
+class Microservice:
     ''' Microservice framework class. '''
     __slots__ = ["_is_initialised", "_logger", "_shutdown_requested"]
 
