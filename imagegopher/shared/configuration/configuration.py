@@ -19,7 +19,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import configparser
 import os
-from configuration import configuration_setup
+from shared.configuration import configuration_setup
 
 class Configuration():
     """
