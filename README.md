@@ -12,3 +12,7 @@ Todo list:
 * Generate thumbnails of images
 * Create a web interface to support viewing / managing of images
 * Dockerfy the microservices
+* Flag up duplicate images
+* Optimise file scanning
+* Report image statistics
+* Extract EXIFF data (where they exist)
