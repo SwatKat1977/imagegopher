@@ -24,6 +24,7 @@ import sqlite3
 from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
 from shared.configuration.configuration import Configuration
+from shared.events.event_handler import EventHandler
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
