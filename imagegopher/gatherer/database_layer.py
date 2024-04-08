@@ -30,11 +30,11 @@ class FileMatchState(Enum):
 @dataclass
 class BasePathEntry:
     """ Class for keeping track of a base path. """
-    id: int
+    row_id: int
     path: str
 
     def __lt__(self, other):
-        return self.id < other.id
+        return self.row_id < other.row_id
 
 class DatabaseLayer:
     """ Database interface layer """

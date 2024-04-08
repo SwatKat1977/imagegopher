@@ -71,7 +71,7 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
 
             entry : BasePathEntry = [entry for entry in self._base_paths \
                                      if entry.path == gatherer.document_root]
-            base_path_id : int = entry[0].id
+            base_path_id : int = entry[0].row_id
 
             # Gathered images are grouped by directories, iterate them:
             for img in gathered_images.items():
