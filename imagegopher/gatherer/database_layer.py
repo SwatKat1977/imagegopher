@@ -22,6 +22,7 @@ from enum import Enum
 import sqlite3
 
 class FileMatchState(Enum):
+    ''' File matching state enumeration '''
     MISSING = 0
     MATCHED = 1
     MODIFIED = 2
@@ -39,10 +40,12 @@ class DatabaseLayer:
     """ Database interface layer """
     __slots__ = ["_db_connection"]
 
-    def __init__(self, db : sqlite3.Connection) -> None:
-        self._db_connection : sqlite3.Connection = db
+    def __init__(self, database : sqlite3.Connection) -> None:
+        self._db_connection : sqlite3.Connection = database
 
     def get_base_paths(self) -> list:
+        ''' Get all of the base paths from the database '''
+
         cursor = self._db_connection.cursor()
 
         result = cursor.execute("SELECT rowid, path FROM base_path")
@@ -57,7 +60,9 @@ class DatabaseLayer:
 
 
     def verify_file_state(self, base_path_id : int, file : str,
-                          hash : str) -> FileMatchState:
+                          file_hash : str) -> FileMatchState:
+        ''' Get the state of a file based on name and hash '''
+
         sql : str = (
             f"SELECT filename, hash FROM file_hash WHERE "
             f"base_path_id = {base_path_id} AND filename='{file}'"
@@ -72,15 +77,16 @@ class DatabaseLayer:
 
         hash_from_db : str = row[1]
 
-        return FileMatchState.MATCHED if hash == hash_from_db else \
+        return FileMatchState.MATCHED if file_hash == hash_from_db else \
             FileMatchState.MODIFIED
 
     def add_file_record(self, base_path_id : int, file : str,
-                          hash : str) -> int:
+                          file_hash : str) -> int:
+        ''' Add a new file record into the database '''
 
         sql : str = ''' INSERT INTO file_hash(base_path_id, filename, hash)
                         VALUES(?,?,?) '''
-        sql_values = (base_path_id, file, hash)
+        sql_values = (base_path_id, file, file_hash)
         cursor : sqlite3.Cursor = self._db_connection.cursor()
         cursor.execute(sql, sql_values)
         self._db_connection.commit()
@@ -88,11 +94,12 @@ class DatabaseLayer:
         return cursor.lastrowid
 
     def update_file_record(self, base_path_id : int, file : str,
-                           hash : str) -> None:
+                           file_hash : str) -> None:
+        ''' Update file record with a new hash '''
 
         sql : str = ''' UPDATE file_hash SET hash=?
                         WHERE base_path_id=? AND filename=?'''
-        sql_values = (hash, base_path_id, file)
+        sql_values = (file_hash, base_path_id, file)
         cursor : sqlite3.Cursor = self._db_connection.cursor()
         cursor.execute(sql, sql_values)
         self._db_connection.commit()
