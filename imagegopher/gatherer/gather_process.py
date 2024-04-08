@@ -18,10 +18,14 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
+import os
+from time import time
 from typing import List
-from database_layer import BasePathEntry, DatabaseLayer
+from database_layer import BasePathEntry, DatabaseLayer, FileMatchState
 from file_gatherer import FileGatherer
 from shared.configuration.configuration import Configuration
+
+ONE_MINUTE_IN_SECONDS : int = 60
 
 class GatherProcess:
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
@@ -32,7 +36,7 @@ class GatherProcess:
         self._config = config
         self._db_layer = db_layer
         self._gatherers = []
-        self._last_process_time : int = 0
+        self._last_process_time : float = 0
         self._logger = logger
 
         self._base_paths = self._cache_base_paths_from_database()
@@ -44,12 +48,65 @@ class GatherProcess:
             self._gatherers.append(gatherer)
 
     def process_files(self):
-        print("process_files......")
+        interval : int = self._config.get_entry("processing",
+                                                "scan_interval") * \
+            ONE_MINUTE_IN_SECONDS
+        start_time : float = time()
+        process_now : bool = False
+
+        if self._last_process_time == 0:
+            self._logger.info("First time execution of file gathering...")
+            process_now = True
+        elif start_time - self._last_process_time > interval:
+            self._logger.info("Scheduled execution of file gathering...")
+            process_now = True
+
+        if not process_now:
+            return
+
+        for gatherer in self._gatherers:
+            gathered_images = gatherer.gather_images()
+
+            entry : BasePathEntry = [entry for entry in self._base_paths \
+                                     if entry.path == gatherer.document_root]
+            base_path_id : int = entry[0].id
+
+            # Gathered images are grouped by directories, iterate them:
+            for img in gathered_images.items():
+                directory : str = img[0].removeprefix(gatherer.document_root)
+                directory = directory if not len(directory) else directory[1:]
+
+                for file_entry in img[1]:
+                    file_path : str = os.path.join(directory, file_entry[0])
+                    #print(file_entry)
+
+                    # Parameters : Base path id, file (with path), hash.
+                    state : FileMatchState = self._db_layer.verify_file_state(
+                        base_path_id, file_path, file_entry[1])
+
+                    if state == FileMatchState.MATCHED:
+                        print(f"FileMatchState.MATCHED : {file_path}")
+                    elif state == FileMatchState.MISSING:
+                        print(f"FileMatchState.MISSING : {file_path}")
+                    else:
+                        print(f"FileMatchState.MODIFIED : {file_path}")
+
+                    break
+
+                continue
+
+        execution_time : float = time() - start_time
+        self._logger.info("Execution time : %.3f (seconds)",
+                          execution_time)
+
+        # Always set last process time to current time and not to now because
+        # we don't know how long processing takes.
+        self._last_process_time = time()
 
     def _cache_base_paths_from_database(self) -> List[BasePathEntry]:
         self._logger.info("Caching base paths from database...")
         base_paths = self._db_layer.get_base_paths()
-        
+
         self._logger.info("entries base paths entries cached: %d", len(base_paths))
 
         return base_paths
