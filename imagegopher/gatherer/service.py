@@ -39,7 +39,9 @@ class Service(Microservice):
         super().__init__()
         self._quart : quart.Quart = quart_instance
         self._config : Configuration = None
+        self._database_layer : sqlite3.Connection = None
         self._db_connection : sqlite3.Connection = None
+        self._gather_process : GatherProcess = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",

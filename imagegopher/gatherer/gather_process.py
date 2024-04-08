@@ -28,6 +28,7 @@ from shared.configuration.configuration import Configuration
 ONE_MINUTE_IN_SECONDS : int = 60
 
 class GatherProcess:
+    ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
                  "_last_process_time", "_logger"]
 
@@ -48,6 +49,7 @@ class GatherProcess:
             self._gatherers.append(gatherer)
 
     def process_files(self):
+        ''' Attempt to gather image files that are either new or modified '''
         interval : int = self._config.get_entry("processing",
                                                 "scan_interval") * \
             ONE_MINUTE_IN_SECONDS
