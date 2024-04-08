@@ -22,7 +22,7 @@ import os
 import sqlite3
 import sys
 
-sql_create_base_path_table = """ CREATE TABLE IF NOT EXISTS base_path_table (
+sql_create_base_path_table = """ CREATE TABLE IF NOT EXISTS base_path (
                                  id integer PRIMARY KEY,
                                  path text NOT NULL
                                 ); """
@@ -106,7 +106,7 @@ def main(argv : list) -> None:
         db_connection.close()
         return
 
-    if not create_table("base_path_table", sql_create_base_path_table,
+    if not create_table("base_path", sql_create_base_path_table,
                         db_connection) or \
        not create_table("file_hash", sql_create_file_hash_table,
                         db_connection):
