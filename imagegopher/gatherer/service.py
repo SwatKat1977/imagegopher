@@ -22,14 +22,16 @@ import os
 import quart
 import sqlite3
 from configuration_layout import CONFIGURATION_LAYOUT
+from database_layer import DatabaseLayer
 from shared.configuration.configuration import Configuration
+from shared.events.event_handler import EventHandler
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
 
 class Service(Microservice):
     """ Gopher Service microservice """
-    __slots__ = ["_config", "_db_connection", "_quart"]
+    __slots__ = ["_config", "_database_layer", "_db_connection", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -89,6 +91,10 @@ class Service(Microservice):
 
         self._logger.setLevel(self._config.get_entry("logging", "log_level"))
 
+        if self._config.get_entry("processing", "scan_interval") <= 1:
+            self._logger.error("Processing interval below 1 minute is invalid")
+            return False
+
         self._display_configuration_details()
 
         if not self._connect_to_database():
@@ -99,18 +105,29 @@ class Service(Microservice):
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
 
+        EventHandler.instance().process_next_event()
+
     def _display_configuration_details(self):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
-        self._logger.info("=> Logging log level : %s",
+        self._logger.info("=> Logging log level    : %s",
                           self._config.get_entry("logging", "log_level"))
         self._logger.info("[database]")
-        self._logger.info("=> Filename          : %s",
+        self._logger.info("=> Filename             : %s",
                           self._config.get_entry("database", "filename"))
+        self._logger.info("[processing]")
+        self._logger.info("=> Scan interval (mins) : %s",
+                          self._config.get_entry("processing", "scan_interval"))
+
+    def _shutdown(self):
+        ''' Shutdown logic. '''
+
+        self._logger.info("Closing database...")
+        if self._db_connection:
+            self._db_connection.close()
 
     def _connect_to_database(self) -> bool:
-        connect_status : bool = False
         db_filename : str = self._config.get_entry("database", "filename")
 
         if not os.path.isfile(db_filename):
@@ -125,4 +142,7 @@ class Service(Microservice):
             return False
 
         self._logger.info("Database connected...")
+
+        self._database_layer = DatabaseLayer(self._db_connection)
+
         return True

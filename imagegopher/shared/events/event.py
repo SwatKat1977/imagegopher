@@ -17,24 +17,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-from shared.configuration import configuration_setup
+from typing import Any, Optional
 
-CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
-    {
-        "logging": [
-            configuration_setup.ConfigurationSetupItem(
-                "log_level", configuration_setup.ConfigItemDataType.STRING,
-                valid_values=['DEBUG', 'INFO'], default_value="INFO")
-        ],
-        "database": [
-            configuration_setup.ConfigurationSetupItem(
-                "filename", configuration_setup.ConfigItemDataType.STRING,
-                is_required=True)
-        ],
-        "processing": [
-            configuration_setup.ConfigurationSetupItem(
-                "scan_interval", configuration_setup.ConfigItemDataType.INTEGER,
-                default_value="60")
-        ]
-    }
-)
+class Event:
+    ''' Event class '''
+    __slots__ = ["_body", "_id"]
+
+    @property
+    def event_id(self):
+        ''' Property : Event id '''
+        return self._id
+
+    @property
+    def body(self) -> Any:
+        ''' Property : Event body '''
+        return self._body
+
+    def __init__(self, event_id : int, body : Optional[Any] = None):
+        self._id : int = event_id
+        self._body : Optional[Any] = body

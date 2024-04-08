@@ -22,6 +22,28 @@ import os
 import sqlite3
 import sys
 
+sql_create_base_path_table = """ CREATE TABLE IF NOT EXISTS base_path (
+                                 path text NOT NULL
+                                ); """
+
+sql_create_file_hash_table = """ CREATE TABLE IF NOT EXISTS file_hash (
+                                 base_path_id integer NOT NULL,
+                                 filename text NOT NULL,
+                                 hash text NOT NULL
+                                ); """
+
+def create_table(table_name : str, create_table_sql : str, connection) -> bool:
+    try:
+        cursor = connection.cursor()
+        cursor.execute(create_table_sql)
+
+    except sqlite3.Error as ex:
+        print(f"[ERROR] Failed to create table '{table_name}', reason: {ex}!")
+
+    print(f"[INFO] Created table '{table_name}'")
+
+    return True
+
 def display_usage() -> None:
     print('gatherer_db_tool -d <database> -o')
     print(" -h : Display this help")
@@ -82,7 +104,15 @@ def main(argv : list) -> None:
         db_connection.close()
         return
 
-    print("[INFO] Database successfully created!")
+    if not create_table("base_path", sql_create_base_path_table,
+                        db_connection) or \
+       not create_table("file_hash", sql_create_file_hash_table,
+                        db_connection):
+       db_connection.close()
+       return
 
+    print("[INFO] Database successfully created!")
+    db_connection.close()
+    
 if __name__ == '__main__':
     main(sys.argv[1:])
