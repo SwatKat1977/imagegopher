@@ -76,5 +76,13 @@ class DatabaseLayer:
             FileMatchState.MODIFIED
 
     def add_file_record(self, base_path_id : int, file : str,
-                          hash : str) -> None:
-        print(f"FileMatchState.MISSING : {file}")
+                          hash : str) -> int:
+
+        sql : str = ''' INSERT INTO file_hash(base_path_id, filename, hash)
+                        VALUES(?,?,?) '''
+        sql_values = (base_path_id, file, hash)
+        cursor : sqlite3.Cursor = self._db_connection.cursor()
+        cursor.execute(sql, sql_values)
+        self._db_connection.commit()
+
+        return cursor.lastrowid
