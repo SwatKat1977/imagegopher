@@ -21,14 +21,18 @@ import logging
 from typing import List
 from database_layer import BasePathEntry, DatabaseLayer
 from file_gatherer import FileGatherer
+from shared.configuration.configuration import Configuration
 
 class GatherProcess:
-    __slots__ = ["_base_paths", "_db_layer", "_gatherers", "_logger"]
+    __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
+                 "_last_process_time", "_logger"]
 
     def __init__(self, db_layer : DatabaseLayer,
-                 logger : logging.Logger) -> None:
+                 logger : logging.Logger, config : Configuration) -> None:
+        self._config = config
         self._db_layer = db_layer
         self._gatherers = []
+        self._last_process_time : int = 0
         self._logger = logger
 
         self._base_paths = self._cache_base_paths_from_database()
