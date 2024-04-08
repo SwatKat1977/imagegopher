@@ -63,9 +63,6 @@ class FileGatherer:
             for file in files:
                 filename = os.path.join(subdir, file)
 
-                if not self._is_image(filename):
-                    print(f"Not : {filename}")
-
                 if self._is_file_readable(filename) and self._is_image(filename):
                     file_hash = self._generate_file_hash(filename)
                     self._logger.debug(
