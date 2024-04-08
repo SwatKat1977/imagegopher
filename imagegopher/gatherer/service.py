@@ -23,6 +23,7 @@ import quart
 import sqlite3
 from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
+from gather_process import GatherProcess
 from shared.configuration.configuration import Configuration
 from shared.events.event_handler import EventHandler
 from shared.microservice import Microservice
@@ -31,7 +32,8 @@ from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
 
 class Service(Microservice):
     """ Gopher Service microservice """
-    __slots__ = ["_config", "_database_layer", "_db_connection", "_quart"]
+    __slots__ = ["_config", "_database_layer", "_db_connection",
+                 "_gather_process", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -100,12 +102,17 @@ class Service(Microservice):
         if not self._connect_to_database():
             return False
 
+        self._gather_process = GatherProcess(self._database_layer,
+                                             self._logger, self._config)
+
         return True
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
 
         EventHandler.instance().process_next_event()
+
+        self._gather_process.process_files()
 
     def _display_configuration_details(self):
         self._logger.info("Configuration")
