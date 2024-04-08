@@ -91,7 +91,7 @@ class GatherProcess:
                         # Mathed so nothing to do...
                         continue
 
-                    elif state == FileMatchState.MISSING:
+                    if state == FileMatchState.MISSING:
                         self._logger.info(
                             "Image found '%s' (%s)",
                             os.path.join(gatherer.document_root, file_path),

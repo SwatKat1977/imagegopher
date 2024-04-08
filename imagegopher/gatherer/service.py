@@ -19,8 +19,8 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
 import os
-import quart
 import sqlite3
+import quart
 from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
 from gather_process import GatherProcess
@@ -112,6 +112,7 @@ class Service(Microservice):
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
 
+        # pylint: disable=no-member
         EventHandler.instance().process_next_event()
 
         self._gather_process.process_files()
@@ -145,7 +146,7 @@ class Service(Microservice):
 
         try:
             self._db_connection = sqlite3.connect(db_filename)
-            db_cursor = self._db_connection.cursor()
+
         except sqlite3.OperationalError as ex:
             self._logger.error("Database connect failed, reason: %s", ex)
             return False
