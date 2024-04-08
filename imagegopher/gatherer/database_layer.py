@@ -18,7 +18,13 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 from dataclasses import dataclass
+from enum import Enum
 import sqlite3
+
+class FileMatchState(Enum):
+    MISSING = 0
+    MATCHED = 1
+    MODIFIED = 2
 
 @dataclass
 class BasePathEntry:
@@ -48,3 +54,23 @@ class DatabaseLayer:
             paths.append(entry)
 
         return paths
+
+
+    def verify_file_state(self, base_path_id : int, file : str,
+                          hash : str) -> FileMatchState:
+        sql : str = (
+            f"SELECT filename, hash FROM file_hash WHERE "
+            f"base_path_id = {base_path_id} AND filename='{file}'"
+        )
+
+        cursor : sqlite3.Cursor = self._db_connection.cursor()
+        cursor.execute(sql)
+        row = cursor.fetchone()
+
+        if not row:
+            return FileMatchState.MISSING
+
+        hash_from_db : str = row[1]
+
+        return FileMatchState.MATCHED if hash == hash_from_db else \
+            FileMatchState.MODIFIED
