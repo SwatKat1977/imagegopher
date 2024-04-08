@@ -17,3 +17,34 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+from dataclasses import dataclass
+import sqlite3
+
+@dataclass
+class BasePathEntry:
+    """ Class for keeping track of a base path. """
+    id: int
+    path: str
+
+    def __lt__(self, other):
+        return self.id < other.id
+
+class DatabaseLayer:
+    """ Database interface layer """
+    __slots__ = ["_db_connection"]
+
+    def __init__(self, db : sqlite3.Connection) -> None:
+        self._db_connection : sqlite3.Connection = db
+
+    def get_base_paths(self) -> list:
+        cursor = self._db_connection.cursor()
+
+        result = cursor.execute("SELECT rowid, path FROM base_path")
+        raw_results : list = result.fetchall()
+
+        paths : list[BasePathEntry] = []
+        for raw_entry in raw_results:
+            entry = BasePathEntry(raw_entry[0], raw_entry[1])
+            paths.append(entry)
+
+        return paths

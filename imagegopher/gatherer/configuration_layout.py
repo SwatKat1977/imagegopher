@@ -30,6 +30,11 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
             configuration_setup.ConfigurationSetupItem(
                 "filename", configuration_setup.ConfigItemDataType.STRING,
                 is_required=True)
+        ],
+        "processing": [
+            configuration_setup.ConfigurationSetupItem(
+                "filename", configuration_setup.ConfigItemDataType.STRING,
+                is_required=True)
         ]
     }
 )
