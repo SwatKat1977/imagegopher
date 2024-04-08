@@ -80,20 +80,31 @@ class GatherProcess:
                     file_path : str = os.path.join(directory, file_entry[0])
                     #print(file_entry)
 
+                    file_hash : str = file_entry[1]
                     # Parameters : Base path id, file (with path), hash.
                     state : FileMatchState = self._db_layer.verify_file_state(
-                        base_path_id, file_path, file_entry[1])
+                        base_path_id, file_path, file_hash)
 
                     if state == FileMatchState.MATCHED:
-                        print(f"FileMatchState.MATCHED : {file_path}")
+                        # Mathed so nothing to do...
+                        continue
+
                     elif state == FileMatchState.MISSING:
-                        print(f"FileMatchState.MISSING : {file_path}")
+                        self._logger.info(
+                            "Image found '%s' (%s)",
+                            os.path.join(gatherer.document_root, file_path),
+                            file_hash)
+                        self._db_layer.add_file_record(base_path_id,
+                                                       file_path,
+                                                       file_hash)
                     else:
-                        print(f"FileMatchState.MODIFIED : {file_path}")
-
-                    break
-
-                continue
+                        self._logger.info(
+                            "Image modified '%s' (%s)",
+                            os.path.join(gatherer.document_root, file_path),
+                            file_hash)
+                        self._db_layer.update_file_record(base_path_id,
+                                                          file_path,
+                                                          file_hash)
 
         execution_time : float = time() - start_time
         self._logger.info("Execution time : %.3f (seconds)",

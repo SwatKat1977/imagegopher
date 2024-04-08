@@ -86,3 +86,15 @@ class DatabaseLayer:
         self._db_connection.commit()
 
         return cursor.lastrowid
+
+    def update_file_record(self, base_path_id : int, file : str,
+                           hash : str) -> None:
+
+        sql : str = ''' UPDATE file_hash SET hash=?
+                        WHERE base_path_id=? AND filename=?'''
+        sql_values = (hash, base_path_id, file)
+        cursor : sqlite3.Cursor = self._db_connection.cursor()
+        cursor.execute(sql, sql_values)
+        self._db_connection.commit()
+
+        return cursor.lastrowid
