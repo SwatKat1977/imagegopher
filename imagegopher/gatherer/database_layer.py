@@ -74,3 +74,7 @@ class DatabaseLayer:
 
         return FileMatchState.MATCHED if hash == hash_from_db else \
             FileMatchState.MODIFIED
+
+    def add_file_record(self, base_path_id : int, file : str,
+                          hash : str) -> None:
+        print(f"FileMatchState.MISSING : {file}")
