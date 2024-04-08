@@ -19,10 +19,11 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
 import os
-import quart
 import sqlite3
+import quart
 from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
+from gather_process import GatherProcess
 from shared.configuration.configuration import Configuration
 from shared.events.event_handler import EventHandler
 from shared.microservice import Microservice
@@ -31,13 +32,16 @@ from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
 
 class Service(Microservice):
     """ Gopher Service microservice """
-    __slots__ = ["_config", "_database_layer", "_db_connection", "_quart"]
+    __slots__ = ["_config", "_database_layer", "_db_connection",
+                 "_gather_process", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
         self._config : Configuration = None
+        self._database_layer : sqlite3.Connection = None
         self._db_connection : sqlite3.Connection = None
+        self._gather_process : GatherProcess = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -100,12 +104,18 @@ class Service(Microservice):
         if not self._connect_to_database():
             return False
 
+        self._gather_process = GatherProcess(self._database_layer,
+                                             self._logger, self._config)
+
         return True
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
 
+        # pylint: disable=no-member
         EventHandler.instance().process_next_event()
+
+        self._gather_process.process_files()
 
     def _display_configuration_details(self):
         self._logger.info("Configuration")
@@ -136,7 +146,7 @@ class Service(Microservice):
 
         try:
             self._db_connection = sqlite3.connect(db_filename)
-            db_cursor = self._db_connection.cursor()
+
         except sqlite3.OperationalError as ex:
             self._logger.error("Database connect failed, reason: %s", ex)
             return False

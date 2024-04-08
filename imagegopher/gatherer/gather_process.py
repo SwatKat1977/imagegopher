@@ -27,7 +27,8 @@ from shared.configuration.configuration import Configuration
 
 ONE_MINUTE_IN_SECONDS : int = 60
 
-class GatherProcess:
+class GatherProcess:    # pylint: disable=too-few-public-methods
+    ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
                  "_last_process_time", "_logger"]
 
@@ -48,6 +49,7 @@ class GatherProcess:
             self._gatherers.append(gatherer)
 
     def process_files(self):
+        ''' Attempt to gather image files that are either new or modified '''
         interval : int = self._config.get_entry("processing",
                                                 "scan_interval") * \
             ONE_MINUTE_IN_SECONDS
@@ -69,27 +71,26 @@ class GatherProcess:
 
             entry : BasePathEntry = [entry for entry in self._base_paths \
                                      if entry.path == gatherer.document_root]
-            base_path_id : int = entry[0].id
+            base_path_id : int = entry[0].row_id
 
             # Gathered images are grouped by directories, iterate them:
             for img in gathered_images.items():
                 directory : str = img[0].removeprefix(gatherer.document_root)
-                directory = directory if not len(directory) else directory[1:]
+                directory = directory if not directory else directory[1:]
 
                 for file_entry in img[1]:
                     file_path : str = os.path.join(directory, file_entry[0])
-                    #print(file_entry)
 
                     file_hash : str = file_entry[1]
                     # Parameters : Base path id, file (with path), hash.
                     state : FileMatchState = self._db_layer.verify_file_state(
                         base_path_id, file_path, file_hash)
 
+                    # The file matches so nothing to do...
                     if state == FileMatchState.MATCHED:
-                        # Mathed so nothing to do...
                         continue
 
-                    elif state == FileMatchState.MISSING:
+                    if state == FileMatchState.MISSING:
                         self._logger.info(
                             "Image found '%s' (%s)",
                             os.path.join(gatherer.document_root, file_path),
