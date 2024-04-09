@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "[INFO] Running Python linter"
-python -m pylint $1 --rcfile=../.pylintrc
+python -m pylint $1 --rcfile=../imagegopher/.pylintrc
 LINT_EXIT_CODE=$?
 
 if [ $LINT_EXIT_CODE -ne 0 ]; then
