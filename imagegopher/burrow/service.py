@@ -18,12 +18,17 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
+import os
 import quart
+from configuration_layout import CONFIGURATION_LAYOUT
+from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
+from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
+                           VERSION_POST
 
 class Service(Microservice):
     """ Image Gopher Burrow microservice """
-    __slots__ = ["_quart"]
+    __slots__ = ["_config", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -36,6 +41,50 @@ class Service(Microservice):
         console_stream.setFormatter(log_format)
         self._logger.addHandler(console_stream)
         self._logger.setLevel("INFO")
+
+    def _initialise(self) -> bool:
+        '''
+        Method for the application initialisation.  It should return a boolean
+       (True => Successful, False => Unsuccessful).
+
+        returns:
+            Boolean: True => Successful, False => Unsuccessful.
+        '''
+
+        version_post : str = "" if VERSION_POST == "" \
+                             else f"-{VERSION_POST}"
+        version_str : str = (f"{VERSION_MAJOR}."
+                             f"{VERSION_MINOR}."
+                             f"{VERSION_BUGFIX}"
+                             f"{version_post}")
+
+        self._logger.info("Image Gopher Burrow Microservice V%s",
+                          version_str)
+        self._logger.info("Copyright 2024 Image Gopher Development Team")
+
+        config_file = os.getenv("GOPHER_BURROW_CONFIG", None)
+        config_file_required : bool = os.getenv(
+            "GOPHER_BURROW_CONFIG_REQUIRED", None)
+        config_file_required = False if not config_file_required \
+                               else config_file_required
+
+        if not config_file and config_file_required:
+            print("[FATAL ERROR] Configuration file missing!")
+            return False
+
+        self._config = Configuration()
+        self._config.configure(CONFIGURATION_LAYOUT,
+                               config_file,
+                               config_file_required)
+
+        try:
+            self._config.process_config()
+
+        except ValueError as ex:
+            self._logger.critical("Configuration error : %s", ex)
+            return False
+
+        self._logger.setLevel(self._config.get_entry("logging", "log_level"))
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
