@@ -2,6 +2,9 @@
 
 export PYTHONPATH=$(pwd):$(pwd)/gatherer
 
+export GOPHER_GATHERER_CONFIG=../sample_configs/gatherer/config.ini
+export GOPHER_GATHERER_CONFIG_REQUIRED=YES
+
 # Python Quart environment variables
 export QUART_APP=gatherer
 export QUART_DEBUG=true

@@ -86,5 +86,25 @@ class Service(Microservice):
 
         self._logger.setLevel(self._config.get_entry("logging", "log_level"))
 
+        if self._config.get_entry("gatherer", "scan_interval") <= 1:
+            self._logger.error(
+                "Gatherer Processing interval below 1 minute is invalid")
+            return False
+
+        self._display_configuration_details()
+
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
+
+    def _display_configuration_details(self):
+        self._logger.info("Configuration")
+        self._logger.info("=============")
+        self._logger.info("[logging]")
+        self._logger.info("=> Logging log level    : %s",
+                          self._config.get_entry("logging", "log_level"))
+        self._logger.info("[gatherer]")
+        self._logger.info("=> Scan interval (mins) : %s",
+                          self._config.get_entry("gatherer", "scan_interval"))
+        self._logger.info("=> Gatherer             : %s:%d",
+                          self._config.get_entry("gatherer", "gatherer_host"),
+                          self._config.get_entry("gatherer", "gatherer_port"))
