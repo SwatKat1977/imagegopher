@@ -2,6 +2,9 @@
 
 export PYTHONPATH=$(pwd):$(pwd)/burrow
 
+export GOPHER_BURROW_CONFIG=../sample_configs/burrow/config.ini
+export GOPHER_BURROW_CONFIG_REQUIRED=YES
+
 # Python Quart environment variables
 export QUART_APP=burrow
 export QUART_DEBUG=true
