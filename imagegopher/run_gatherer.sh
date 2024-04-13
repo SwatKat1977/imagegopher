@@ -1,7 +1,6 @@
 #!/bin/bash
 
 export PYTHONPATH=$(pwd):$(pwd)/gatherer
-echo pt $PYTHONPATH
 
 # Python Quart environment variables
 export QUART_APP=gatherer
