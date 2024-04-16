@@ -60,12 +60,11 @@ class Microservice:
         '''
         if self._initialise() is True:
             self._is_initialised = True
-            init_status = True
+            return True
 
-        else:
-            init_status = False
+        self.stop()
 
-        return init_status
+        return False
 
     async def run(self) -> None:
         '''

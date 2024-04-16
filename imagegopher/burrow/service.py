@@ -25,6 +25,7 @@ from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
+from views.configuration_view import create_configuration_blueprint
 
 class Service(Microservice):
     """ Image Gopher Burrow microservice """
@@ -92,6 +93,13 @@ class Service(Microservice):
             return False
 
         self._display_configuration_details()
+
+        self._logger.info('Registering configuration endpoints...')
+        configuration_blueprint = create_configuration_blueprint(
+            self._logger)
+        self._quart.register_blueprint(configuration_blueprint)
+
+        return True
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
