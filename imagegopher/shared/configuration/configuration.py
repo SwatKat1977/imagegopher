@@ -198,7 +198,7 @@ class Configuration():
         value = os.getenv(env_variable)
 
         # If no environment variable is found, check config file (if exits)
-        if not value and self._has_config_file:
+        if value is None and self._has_config_file:
             try:
                 value = self._parser.getint(section, fmt.item_name)
 
@@ -212,9 +212,9 @@ class Configuration():
                 raise ValueError((f"Config file option '{fmt.item_name}'"
                                    " is not a valid int.")) from ex
 
-        value = value if value else fmt.default_value
+        value = value if value is not None else fmt.default_value
 
-        if not value and fmt.is_required:
+        if value and fmt.is_required:
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
