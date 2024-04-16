@@ -35,7 +35,13 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
                 is_required=True),
             configuration_setup.ConfigurationSetupItem(
                 "gatherer_port", configuration_setup.ConfigItemDataType.INTEGER,
-                default_value="3001")
+                default_value="3001"),
+            configuration_setup.ConfigurationSetupItem(
+                "wait_for_ok", configuration_setup.ConfigItemDataType.STRING,
+                valid_values=['YES', 'NO'], default_value="YES"),
+            configuration_setup.ConfigurationSetupItem(
+                "wait_for_ok_retries", configuration_setup.ConfigItemDataType.INTEGER,
+                default_value="12")
         ]
     }
 )
