@@ -17,11 +17,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+from http import HTTPStatus
 import logging
 import os
 import quart
+import time
 from configuration_layout import CONFIGURATION_LAYOUT
 from shared.configuration.configuration import Configuration
+from shared.http_helpers import ApiResponse, api_get
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
@@ -92,9 +95,18 @@ class Service(Microservice):
                 "Gatherer Processing interval below 1 minute is invalid")
             return False
 
+        if self._config.get_entry("gatherer", "wait_for_ok_retries") <= 0:
+            self._logger.error(
+                "Gatherer health check retries of 0 or below is invalid")
+            return False
+
         self._display_configuration_details()
 
-        self._logger.info('Registering configuration endpoints...')
+        if not self._check_gatherer_status():
+            self._logger.fatal("Cannot get gatherer status in timely manner")
+            return False
+
+        self._logger.info("Registering configuration endpoints...")
         configuration_blueprint = create_configuration_blueprint(
             self._logger)
         self._quart.register_blueprint(configuration_blueprint)
@@ -111,8 +123,66 @@ class Service(Microservice):
         self._logger.info("=> Logging log level    : %s",
                           self._config.get_entry("logging", "log_level"))
         self._logger.info("[gatherer]")
-        self._logger.info("=> Scan interval (mins) : %s",
+        self._logger.info("=> Scan interval (mins)       : %s",
                           self._config.get_entry("gatherer", "scan_interval"))
-        self._logger.info("=> Gatherer             : %s:%d",
+        self._logger.info("=> Gatherer                   : %s:%d",
                           self._config.get_entry("gatherer", "gatherer_host"),
                           self._config.get_entry("gatherer", "gatherer_port"))
+        self._logger.info("=> Wait until running         : %s",
+                          self._config.get_entry("gatherer", "wait_for_ok"))
+        self._logger.info("=> Wait until running retries : %s",
+                          self._config.get_entry("gatherer", "wait_for_ok_retries"))
+
+    def _check_gatherer_status(self) -> bool:
+        if self._config.get_entry("gatherer", "wait_for_ok") == "YES":
+            self._logger.info("Waiting for gatherer to wake up...")
+
+            host : str = self._config.get_entry("gatherer", "gatherer_host")
+            port : str = self._config.get_entry("gatherer", "gatherer_port")
+            api_call : str = f"{host}:{port}/health/status"
+
+            max_retries : int = self._config.get_entry("gatherer",
+                                                       "wait_for_ok_retries")
+            current_retries : int = 0
+            now : float = time.time()
+            next_retry : float = 0.0
+
+            try:
+                last_exception_msg : str = ""
+
+                while current_retries < max_retries:
+                    now = time.time()
+                    if now >= next_retry:
+                        response : ApiResponse = api_get(api_call)
+
+                        if response.exception_msg:
+                            if last_exception_msg != response.exception_msg:
+                                self._logger.error(
+                                "Unable to get gatherer status, reason: %s",
+                                response.exception_msg)
+                                last_exception_msg = response.exception_msg
+
+                        elif response.status_code != HTTPStatus.OK:
+                            msg : str = (f"Gatherer returned status : "
+                                        f"{response.status_code}")
+
+                            if last_exception_msg != response.exception_msg:
+                                self._logger.error(msg)
+                                last_exception_msg = response.exception_msg
+
+                        else:
+                            return True
+
+                        next_retry = now + 10
+                        current_retries += 1
+
+                    time.sleep(0.1)
+
+                return False
+
+            except KeyboardInterrupt:
+                return False
+
+        else:
+            self._logger.info("Not waiting for gatherer to wake up...")
+            return True
