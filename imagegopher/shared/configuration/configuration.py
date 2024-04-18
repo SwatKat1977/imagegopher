@@ -119,7 +119,7 @@ class Configuration():
 
             for section_item in section_items:
 
-                if section_item.item_type == ConfigItemDataType.INTEGER:
+                if section_item.item_type == ConfigItemDataType.INT:
                     item_value : int = self._read_int(section_name, section_item)
 
                 elif section_item.item_type == ConfigItemDataType.STRING:
@@ -129,6 +129,13 @@ class Configuration():
 
                 elif section_item.item_type == ConfigItemDataType.BOOLEAN:
                     item_value : bool = self._read_bool(section_name,
+                                                        section_item)
+
+                elif section_item.item_type == ConfigItemDataType.FLOAT:
+                    item_value : float = self._read_float(section_name,
+                                                        section_item)
+                elif section_item.item_type == ConfigItemDataType.UNSIGNED_INT:
+                    item_value : int = self._read_uint(section_name,
                                                         section_item)
 
                 if section_name not in self._config_items:
@@ -276,5 +283,83 @@ class Configuration():
         else:
             raise ValueError((f"Configuration option '{fmt.item_name}' with "
                               f"a value of '{value}' is not an bool."))
+
+        return value
+
+    def _read_float(self, section : str,
+                    fmt : ConfigurationSetupItem) -> float:
+        """
+        Read a configuration option of type float, firstly it will check for an
+        environment variable (format is section_option), otherise try the
+        configuration file (if it exists). An ValueError exception is thrown
+        it's missing and marked as is_required or is not an float.
+
+        parameters:
+            section : Configuration section
+            option : Configuration option to read
+            default : Default value (if not a required variable)
+            is_required : Is a required env variable flag (default is False)
+
+        returns:
+            An float or None if it's not a required field.
+        """
+        env_variable : str = f"{section}_{fmt.item_name}".upper()
+        value = os.getenv(env_variable)
+
+        # If no environment variable is found, check config file (if exits)
+        if value is None and self._has_config_file:
+            try:
+                value = self._parser.getfloat(section, fmt.item_name)
+
+            except configparser.NoOptionError:
+                value = None
+
+            except configparser.NoSectionError:
+                value = None
+
+            except ValueError as ex:
+                raise ValueError((f"Config file option '{fmt.item_name}'"
+                                   " is not a valid float.")) from ex
+
+        value = value if value is not None else fmt.default_value
+
+        if value and fmt.is_required:
+            raise ValueError("Missing required config option "
+                             f"'{section}::{fmt.item_name}'")
+
+        try:
+            value = float(value)
+
+        except ValueError as ex:
+            raise ValueError((f"Configuration option '{fmt.item_name}' with a "
+                              f"value of '{value}' is not a float.")) from ex
+
+        return value
+
+    def _read_uint(self, section : str,
+                   fmt : ConfigurationSetupItem) -> int:
+        """
+        Read a configuration option of type int, firstly it will check for
+        an enviroment variable (format is section_option), otherise try the
+        configuration file (if it exists). An ValueError exception is thrown
+        it's missing and marked as is_required or is not an unsigned int.
+
+        parameters:
+            section : Configuration section
+            option : Configuration option to read
+            default : Default value (if not a required variable)
+            is_required : Is a required env variable flag (default is False)
+
+        returns:
+            An unsigned int or None if it's not a required field.
+        """
+        value : int = self._read_int(section, fmt)
+
+        if value == None:
+            return value
+
+        if value < 0:
+            raise ValueError((f"Configuration option '{fmt.item_name}' with a"
+                              f"value of '{value}' is not an unsigned int."))
 
         return value
