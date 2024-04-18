@@ -19,9 +19,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 from typing import Callable, Dict, List
 from shared.events.event import Event
-from shared.singleton import Singleton
 
-@Singleton
 class EventHandler:
     __slots__ = ["_event_handlers", "_events"]
 

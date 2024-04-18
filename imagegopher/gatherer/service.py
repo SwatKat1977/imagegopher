@@ -24,8 +24,8 @@ import quart
 from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
 from gather_process import GatherProcess
+from gatherer_event_handler import GathererEventHandler
 from shared.configuration.configuration import Configuration
-from shared.events.event_handler import EventHandler
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
@@ -111,9 +111,7 @@ class Service(Microservice):
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
-
-        # pylint: disable=no-member
-        EventHandler.instance().process_next_event()
+        GathererEventHandler().process_next_event()
 
         self._gather_process.process_files()
 

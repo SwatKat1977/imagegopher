@@ -17,23 +17,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-import threading
+from shared.events.event_handler import EventHandler
+from shared.singleton import Singleton
 
-class Singleton(type):
-    """
-    Implementation of a thread-safe singleton using a double-checked locking
-    pattern.
-    """
-    _instances = {}
-    _singleton_lock = threading.Lock()
-
-    def __call__(cls, *args, **kwargs):
-
-        # double-checked locking pattern (https://en.wikipedia.org/wiki/Double-checked_locking)
-        if cls not in cls._instances:
-            with cls._singleton_lock:
-                if cls not in cls._instances:
-                    cls._instances[cls] = super(Singleton, cls) \
-                        .__call__(*args, **kwargs)
-
-        return cls._instances[cls]
+class GathererEventHandler(EventHandler, metaclass = Singleton):
+    ...

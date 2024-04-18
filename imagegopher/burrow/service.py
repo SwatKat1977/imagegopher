@@ -20,19 +20,22 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 from http import HTTPStatus
 import logging
 import os
-import quart
 import time
+import quart
+
+from burrow_configuration import BurrowConfiguration
 from configuration_layout import CONFIGURATION_LAYOUT
-from shared.configuration.configuration import Configuration
+from views.configuration_view import create_configuration_blueprint
 from shared.http_helpers import ApiResponse, api_get
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
-from views.configuration_view import create_configuration_blueprint
+
+GATHERER_HEALTH_API_CALL : str = "{0}:{1}/health/status"
 
 class Service(Microservice):
     """ Image Gopher Burrow microservice """
-    __slots__ = ["_config", "_quart"]
+    __slots__ = ["_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -76,35 +79,40 @@ class Service(Microservice):
             print("[FATAL ERROR] Configuration file missing!")
             return False
 
-        self._config = Configuration()
-        self._config.configure(CONFIGURATION_LAYOUT,
-                               config_file,
-                               config_file_required)
+        BurrowConfiguration().configure(CONFIGURATION_LAYOUT,
+                                        config_file,
+                                        config_file_required)
 
         try:
-            self._config.process_config()
+            BurrowConfiguration().process_config()
 
         except ValueError as ex:
             self._logger.critical("Configuration error : %s", ex)
             return False
 
-        self._logger.setLevel(self._config.get_entry("logging", "log_level"))
+        self._logger.setLevel(BurrowConfiguration().logging_log_level)
 
-        if self._config.get_entry("gatherer", "scan_interval") <= 1:
+        if BurrowConfiguration().gatherer_scan_interval <= 1:
             self._logger.error(
                 "Gatherer Processing interval below 1 minute is invalid")
             return False
 
-        if self._config.get_entry("gatherer", "wait_for_ok_retries") <= 0:
+        if BurrowConfiguration().gatherer_wait_for_ok_retries <= 0:
             self._logger.error(
                 "Gatherer health check retries of 0 or below is invalid")
             return False
 
         self._display_configuration_details()
 
-        if not self._check_gatherer_status():
-            self._logger.fatal("Cannot get gatherer status in timely manner")
-            return False
+        if BurrowConfiguration().gatherer_wait_for_ok == "YES":
+            self._logger.info("Waiting for gatherer to wake up...")
+
+            if not self._check_gatherer_status():
+                self._logger.fatal("Cannot get gatherer status in timely manner")
+                return False
+        else:
+            self._logger.info("Not waiting for gatherer to wake up...")
+            return True
 
         self._logger.info("Registering configuration endpoints...")
         configuration_blueprint = create_configuration_blueprint(
@@ -121,68 +129,59 @@ class Service(Microservice):
         self._logger.info("=============")
         self._logger.info("[logging]")
         self._logger.info("=> Logging log level    : %s",
-                          self._config.get_entry("logging", "log_level"))
+                          BurrowConfiguration().logging_log_level)
         self._logger.info("[gatherer]")
         self._logger.info("=> Scan interval (mins)       : %s",
-                          self._config.get_entry("gatherer", "scan_interval"))
+                          BurrowConfiguration().gatherer_scan_interval)
         self._logger.info("=> Gatherer                   : %s:%d",
-                          self._config.get_entry("gatherer", "gatherer_host"),
-                          self._config.get_entry("gatherer", "gatherer_port"))
+                          BurrowConfiguration().gatherer_host,
+                          BurrowConfiguration().gatherer_port)
         self._logger.info("=> Wait until running         : %s",
-                          self._config.get_entry("gatherer", "wait_for_ok"))
+                          BurrowConfiguration().gatherer_wait_for_ok)
         self._logger.info("=> Wait until running retries : %s",
-                          self._config.get_entry("gatherer", "wait_for_ok_retries"))
+                          BurrowConfiguration().gatherer_wait_for_ok_retries)
 
     def _check_gatherer_status(self) -> bool:
-        if self._config.get_entry("gatherer", "wait_for_ok") == "YES":
-            self._logger.info("Waiting for gatherer to wake up...")
+        api_call : str = GATHERER_HEALTH_API_CALL.format(
+            BurrowConfiguration().gatherer_host,
+            BurrowConfiguration().gatherer_port)
+        max_retries : int = BurrowConfiguration().gatherer_wait_for_ok_retries
+        current_retries : int = 0
+        now : float = time.time()
+        next_retry : float = 0.0
 
-            host : str = self._config.get_entry("gatherer", "gatherer_host")
-            port : str = self._config.get_entry("gatherer", "gatherer_port")
-            api_call : str = f"{host}:{port}/health/status"
+        try:
+            last_exception_msg : str = ""
 
-            max_retries : int = self._config.get_entry("gatherer",
-                                                       "wait_for_ok_retries")
-            current_retries : int = 0
-            now : float = time.time()
-            next_retry : float = 0.0
+            while current_retries < max_retries:
+                now = time.time()
+                if now >= next_retry:
+                    response : ApiResponse = api_get(api_call)
 
-            try:
-                last_exception_msg : str = ""
+                    if response.exception_msg:
+                        if last_exception_msg != response.exception_msg:
+                            self._logger.error(
+                            "Unable to get gatherer status, reason: %s",
+                            response.exception_msg)
+                            last_exception_msg = response.exception_msg
 
-                while current_retries < max_retries:
-                    now = time.time()
-                    if now >= next_retry:
-                        response : ApiResponse = api_get(api_call)
+                    elif response.status_code != HTTPStatus.OK:
+                        msg : str = (f"Gatherer returned status : "
+                                    f"{response.status_code}")
 
-                        if response.exception_msg:
-                            if last_exception_msg != response.exception_msg:
-                                self._logger.error(
-                                "Unable to get gatherer status, reason: %s",
-                                response.exception_msg)
-                                last_exception_msg = response.exception_msg
+                        if last_exception_msg != response.exception_msg:
+                            self._logger.error(msg)
+                            last_exception_msg = response.exception_msg
 
-                        elif response.status_code != HTTPStatus.OK:
-                            msg : str = (f"Gatherer returned status : "
-                                        f"{response.status_code}")
+                    else:
+                        return True
 
-                            if last_exception_msg != response.exception_msg:
-                                self._logger.error(msg)
-                                last_exception_msg = response.exception_msg
+                    next_retry = now + 10
+                    current_retries += 1
 
-                        else:
-                            return True
+                time.sleep(0.1)
 
-                        next_retry = now + 10
-                        current_retries += 1
+        except KeyboardInterrupt:
+            return False
 
-                    time.sleep(0.1)
-
-                return False
-
-            except KeyboardInterrupt:
-                return False
-
-        else:
-            self._logger.info("Not waiting for gatherer to wake up...")
-            return True
+        return False
