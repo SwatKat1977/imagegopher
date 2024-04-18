@@ -17,23 +17,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-import threading
+from dataclasses import dataclass
 
-class Singleton(type):
-    """
-    Implementation of a thread-safe singleton using a double-checked locking
-    pattern.
-    """
-    _instances = {}
-    _singleton_lock = threading.Lock()
+@dataclass(init=True)
+class ApiResponse:
+    """ Class for keeping track of api return data. """
+    status_code: int
+    body: dict | str
+    content_type : str
+    exception_msg : str
 
-    def __call__(cls, *args, **kwargs):
-
-        # double-checked locking pattern (https://en.wikipedia.org/wiki/Double-checked_locking)
-        if cls not in cls._instances:
-            with cls._singleton_lock:
-                if cls not in cls._instances:
-                    cls._instances[cls] = super(Singleton, cls) \
-                        .__call__(*args, **kwargs)
-
-        return cls._instances[cls]
+    def __init__(self,
+                 status_code: int = 0,
+                 body: dict | str = None,
+                 content_type : str = None,
+                 exception_msg : str = None):
+        self.status_code = status_code
+        self.body = body
+        self.content_type = content_type
+        self.exception_msg = exception_msg

@@ -17,23 +17,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-import threading
+import sys
+from quart import Quart
+from service import Service
 
-class Singleton(type):
+app = Quart(__name__)
+SERVICE_APP = None
+
+@app.before_serving
+async def startup() -> None:
     """
-    Implementation of a thread-safe singleton using a double-checked locking
-    pattern.
+    Code executed before Quart has started serving http requests.
     """
-    _instances = {}
-    _singleton_lock = threading.Lock()
+    app.add_background_task(SERVICE_APP.run)
 
-    def __call__(cls, *args, **kwargs):
+@app.after_serving
+async def shutdown() -> None:
+    """
+    Code executed after Quart has stopped serving http requests.
+    """
 
-        # double-checked locking pattern (https://en.wikipedia.org/wiki/Double-checked_locking)
-        if cls not in cls._instances:
-            with cls._singleton_lock:
-                if cls not in cls._instances:
-                    cls._instances[cls] = super(Singleton, cls) \
-                        .__call__(*args, **kwargs)
+    SERVICE_APP.stop()
 
-        return cls._instances[cls]
+SERVICE_APP = Service(app)
+if not SERVICE_APP.initialise():
+    sys.exit()

@@ -1,2 +1,7 @@
 # Python intermediate files
 __pycache__
+
+# Linux Specific Files
+
+# Mac Specific Files
+.DS_Store
