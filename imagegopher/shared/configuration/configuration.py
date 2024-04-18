@@ -19,7 +19,9 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import configparser
 import os
-from shared.configuration import configuration_setup
+from shared.configuration.configuration_setup import ConfigItemDataType, \
+                                                     ConfigurationSetup, \
+                                                     ConfigurationSetupItem
 
 class Configuration():
     """
@@ -35,10 +37,10 @@ class Configuration():
         self._config_file : str = ''
         self._has_config_file = False
         self._config_file_required = False
-        self._layout : configuration_setup.ConfigurationSetup = None
+        self._layout : ConfigurationSetup = None
         self._config_items = {}
 
-    def configure(self, layout : configuration_setup.ConfigurationSetup,
+    def configure(self, layout : ConfigurationSetup,
                  config_file : str = None, file_required : bool = False):
         """
         Constructor for the configuration base class, it take in a layout
@@ -47,8 +49,8 @@ class Configuration():
         Example of layout:
         {
             "logging": [
-                configuration_setup.ConfigurationSetupItem(
-                    "log_level", configuration_setup.DataType.STRING,
+                ConfigurationSetupItem(
+                    "log_level", ConfigItemDataType.STRING,
                     valid_values=['DEBUG', 'INFO'],
                     default_value="INFO")
             ]
@@ -117,7 +119,7 @@ class Configuration():
 
             for section_item in section_items:
 
-                if section_item.item_type == configuration_setup.ConfigItemDataType.INTEGER:
+                if section_item.item_type == ConfigItemDataType.INTEGER:
                     item_value : int = self._read_int(section_name, section_item)
 
                     if section_name not in self._config_items:
@@ -125,7 +127,7 @@ class Configuration():
 
                     self._config_items[section_name][section_item.item_name] = item_value
 
-                elif section_item.item_type == configuration_setup.ConfigItemDataType.STRING:
+                elif section_item.item_type == ConfigItemDataType.STRING:
                     item_value : str = self._read_str(section_name,
                                                      section_item.item_name,
                                                      section_item)
@@ -136,7 +138,7 @@ class Configuration():
                     self._config_items[section_name][section_item.item_name] = item_value
 
     def _read_str(self, section : str, option : str,
-                 fmt : configuration_setup.ConfigurationSetupItem) -> str:
+                 fmt : ConfigurationSetupItem) -> str:
         """
         Read a configuration option of type string, firstly it will check for
         an enviroment variable (format is section_option), otherise try the
@@ -178,7 +180,7 @@ class Configuration():
         return value
 
     def _read_int(self, section : str,
-                  fmt : configuration_setup.ConfigurationSetupItem) -> int:
+                  fmt : ConfigurationSetupItem) -> int:
         """
         Read a configuration option of type int, firstly it will check for
         an enviroment variable (format is section_option), otherise try the
