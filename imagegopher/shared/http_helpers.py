@@ -17,28 +17,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 import aiohttp
 import requests
-
-@dataclass(init=True)
-class ApiResponse:
-    """ Class for keeping track of api return data. """
-    status_code: int
-    body: dict | str
-    content_type : str
-    exception_msg : str
-
-    def __init__(self,
-                 status_code: int = 0,
-                 body: dict | str = None,
-                 content_type : str = None,
-                 exception_msg : str = None):
-        self.status_code = status_code
-        self.body = body
-        self.content_type = content_type
-        self.exception_msg = exception_msg
+from shared.api_response import ApiResponse
 
 CONTENT_TYPE_JSON : str = 'application/json'
 CONTENT_TYPE_TEXT : str = 'text/plain'
@@ -55,6 +37,7 @@ async def async_api_post(url : str, json_data : dict = None) -> ApiResponse:
         ApiResponse which will will contain response data or just
         exception_msg if something went wrong.
     """
+    # pylint: disable=broad-exception-caught
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -84,13 +67,14 @@ async def async_api_get(url : str, json_data : dict = None) -> ApiResponse:
         ApiResponse which will will contain response data or just
         exception_msg if something went wrong.
     """
+    # pylint: disable=broad-exception-caught
 
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, json=json_data) as resp:
-                body = resp.json() \
+                body = await resp.json() \
                     if resp.content_type == CONTENT_TYPE_JSON \
-                    else resp.text()
+                    else await resp.text()
                 api_return = ApiResponse(
                     status_code = resp.status,
                     body = body,
@@ -118,8 +102,9 @@ def api_get(url : str, get_auth : Optional[Tuple] = None,
 
     try:
         response : requests.Response = requests.get(url, auth=get_auth,
-                                                    headers=get_headers)
-        
+                                                    headers=get_headers,
+                                                    timeout=0.1)
+
         if response.headers["content-type"] == 'application/json; charset=utf8':
             body = response.json
         else:
@@ -130,26 +115,8 @@ def api_get(url : str, get_auth : Optional[Tuple] = None,
             status_code = response.status_code,
             body = body, content_type = content_type)
 
-    except requests.exceptions.ConnectionError as ex:
+    except requests.exceptions.ConnectionError:
         api_response : ApiResponse = ApiResponse(
             exception_msg = "Network problem (DNS failure, refused connection, etc)")
 
     return api_response
-
-    """
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, json=json_data) as resp:
-                body = resp.json() \
-                    if resp.content_type == CONTENT_TYPE_JSON \
-                    else resp.text()
-                api_return = ApiResponse(
-                    status_code = resp.status,
-                    body = body,
-                    content_type = resp.content_type)
-
-    except Exception as ex:
-        api_return = ApiResponse(exception_msg = ex)
-
-    return api_return
-    """

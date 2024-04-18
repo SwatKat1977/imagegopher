@@ -69,6 +69,30 @@ class Service(Microservice):
                           version_str)
         self._logger.info("Copyright 2024 Image Gopher Development Team")
 
+        if not self._manage_configuration():
+            return False
+
+        if BurrowConfiguration().gatherer_wait_for_ok == "YES":
+            self._logger.info("Waiting for gatherer to wake up...")
+
+            if not self._check_gatherer_status():
+                self._logger.fatal("Cannot get gatherer status in timely manner")
+                return False
+        else:
+            self._logger.info("Not waiting for gatherer to wake up...")
+            return True
+
+        self._logger.info("Registering configuration endpoints...")
+        configuration_blueprint = create_configuration_blueprint(
+            self._logger)
+        self._quart.register_blueprint(configuration_blueprint)
+
+        return True
+
+    async def _main_loop(self) -> None:
+        ''' Main microservice loop. '''
+
+    def _manage_configuration(self) -> bool:
         config_file = os.getenv("GOPHER_BURROW_CONFIG", None)
         config_file_required : bool = os.getenv(
             "GOPHER_BURROW_CONFIG_REQUIRED", None)
@@ -102,29 +126,6 @@ class Service(Microservice):
                 "Gatherer health check retries of 0 or below is invalid")
             return False
 
-        self._display_configuration_details()
-
-        if BurrowConfiguration().gatherer_wait_for_ok == "YES":
-            self._logger.info("Waiting for gatherer to wake up...")
-
-            if not self._check_gatherer_status():
-                self._logger.fatal("Cannot get gatherer status in timely manner")
-                return False
-        else:
-            self._logger.info("Not waiting for gatherer to wake up...")
-            return True
-
-        self._logger.info("Registering configuration endpoints...")
-        configuration_blueprint = create_configuration_blueprint(
-            self._logger)
-        self._quart.register_blueprint(configuration_blueprint)
-
-        return True
-
-    async def _main_loop(self) -> None:
-        ''' Main microservice loop. '''
-
-    def _display_configuration_details(self):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
@@ -140,6 +141,8 @@ class Service(Microservice):
                           BurrowConfiguration().gatherer_wait_for_ok)
         self._logger.info("=> Wait until running retries : %s",
                           BurrowConfiguration().gatherer_wait_for_ok_retries)
+
+        return True
 
     def _check_gatherer_status(self) -> bool:
         api_call : str = GATHERER_HEALTH_API_CALL.format(
