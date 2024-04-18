@@ -25,6 +25,7 @@ class ConfigItemDataType(enum.Enum):
     """ Enumeration for configuration item data type """
     INTEGER = enum.auto()
     STRING = enum.auto()
+    BOOLEAN = enum.auto()
 
 @dataclass(frozen=True)
 class ConfigurationSetupItem:
