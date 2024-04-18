@@ -355,7 +355,7 @@ class Configuration():
         """
         value : int = self._read_int(section, fmt)
 
-        if value == None:
+        if value is None:
             return value
 
         if value < 0:
