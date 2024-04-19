@@ -25,11 +25,11 @@ from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
+from views.health_view import create_health_blueprint
 from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
-from views.health_view import create_health_blueprint
 
 class Service(Microservice):
     """ Gopher Service microservice """
