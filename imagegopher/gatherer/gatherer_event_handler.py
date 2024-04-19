@@ -22,4 +22,3 @@ from shared.singleton import Singleton
 
 class GathererEventHandler(EventHandler, metaclass = Singleton):
     ''' Gatherer event handler singleton '''
-    ...
