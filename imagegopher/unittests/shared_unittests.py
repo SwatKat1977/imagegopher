@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import unittest
+from shared.unittests_configuration import TestConfiguration
 
 if __name__ == '__main__':
     unittest.main()
