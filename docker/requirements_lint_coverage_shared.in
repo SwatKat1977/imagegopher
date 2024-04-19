@@ -1,1 +1,4 @@
+aiohttp
+jsonschema
 pylint
+requests
