@@ -51,6 +51,8 @@ markupsafe==2.1.5
     #   werkzeug
 mccabe==0.7.0
     # via pylint
+pillow==10.3.0
+    # via -r ../docker/requirements_lint_gatherer.in
 platformdirs==4.2.0
     # via pylint
 priority==2.0.0
