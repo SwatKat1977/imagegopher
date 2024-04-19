@@ -21,4 +21,5 @@ from shared.events.event_handler import EventHandler
 from shared.singleton import Singleton
 
 class GathererEventHandler(EventHandler, metaclass = Singleton):
+    ''' Gatherer event handler singleton '''
     ...
