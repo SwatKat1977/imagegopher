@@ -23,8 +23,11 @@ from dataclasses import dataclass
 
 class ConfigItemDataType(enum.Enum):
     """ Enumeration for configuration item data type """
-    INTEGER = enum.auto()
+    BOOLEAN = enum.auto()
+    FLOAT = enum.auto()
+    INT = enum.auto()
     STRING = enum.auto()
+    UNSIGNED_INT = enum.auto()
 
 @dataclass(frozen=True)
 class ConfigurationSetupItem:

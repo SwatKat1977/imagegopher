@@ -1,4 +1,4 @@
-name: Lint Gatherer Microservice
+name: Lint Shared Code
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the development branch
@@ -20,9 +20,9 @@ jobs:
     - name: Install Requirements
       run: |
         python -m pip install --upgrade pip
-        pip install --no-cache-dir -r docker/requirements_lint_gatherer.txt
+        pip install --no-cache-dir -r docker/requirements_lint_shared.txt
     - name: Run Pylint
       run: |
         cd imagegopher
-        export PYTHONPATH=`pwd`/gatherer:`pwd`/shared
-        sh ../.github/workflows/lint.sh gatherer
+        export PYTHONPATH=`pwd`:`pwd`/shared
+        sh ../.github/workflows/lint.sh shared

@@ -1,7 +1,10 @@
 # Python intermediate files
 __pycache__
 
-# Linux Specific Files
+# Linux specific files
 
-# Mac Specific Files
+# Mac specific files
 .DS_Store
+
+# Coverage specific files
+.coverage

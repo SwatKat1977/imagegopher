@@ -1,2 +1,4 @@
 quart
 hypercorn
+pillow
+pylint

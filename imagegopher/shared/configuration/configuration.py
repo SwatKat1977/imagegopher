@@ -19,7 +19,9 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import configparser
 import os
-from shared.configuration import configuration_setup
+from shared.configuration.configuration_setup import ConfigItemDataType, \
+                                                     ConfigurationSetup, \
+                                                     ConfigurationSetupItem
 
 class Configuration():
     """
@@ -35,10 +37,10 @@ class Configuration():
         self._config_file : str = ''
         self._has_config_file = False
         self._config_file_required = False
-        self._layout : configuration_setup.ConfigurationSetup = None
+        self._layout : ConfigurationSetup = None
         self._config_items = {}
 
-    def configure(self, layout : configuration_setup.ConfigurationSetup,
+    def configure(self, layout : ConfigurationSetup,
                  config_file : str = None, file_required : bool = False):
         """
         Constructor for the configuration base class, it take in a layout
@@ -47,8 +49,8 @@ class Configuration():
         Example of layout:
         {
             "logging": [
-                configuration_setup.ConfigurationSetupItem(
-                    "log_level", configuration_setup.DataType.STRING,
+                ConfigurationSetupItem(
+                    "log_level", ConfigItemDataType.STRING,
                     valid_values=['DEBUG', 'INFO'],
                     default_value="INFO")
             ]
@@ -117,26 +119,32 @@ class Configuration():
 
             for section_item in section_items:
 
-                if section_item.item_type == configuration_setup.ConfigItemDataType.INTEGER:
+                if section_item.item_type == ConfigItemDataType.INT:
                     item_value : int = self._read_int(section_name, section_item)
 
-                    if section_name not in self._config_items:
-                        self._config_items[section_name] = {}
-
-                    self._config_items[section_name][section_item.item_name] = item_value
-
-                elif section_item.item_type == configuration_setup.ConfigItemDataType.STRING:
+                elif section_item.item_type == ConfigItemDataType.STRING:
                     item_value : str = self._read_str(section_name,
                                                      section_item.item_name,
                                                      section_item)
 
-                    if section_name not in self._config_items:
-                        self._config_items[section_name] = {}
+                elif section_item.item_type == ConfigItemDataType.BOOLEAN:
+                    item_value : bool = self._read_bool(section_name,
+                                                        section_item)
 
-                    self._config_items[section_name][section_item.item_name] = item_value
+                elif section_item.item_type == ConfigItemDataType.FLOAT:
+                    item_value : float = self._read_float(section_name,
+                                                        section_item)
+                elif section_item.item_type == ConfigItemDataType.UNSIGNED_INT:
+                    item_value : int = self._read_uint(section_name,
+                                                        section_item)
+
+                if section_name not in self._config_items:
+                    self._config_items[section_name] = {}
+
+                self._config_items[section_name][section_item.item_name] = item_value
 
     def _read_str(self, section : str, option : str,
-                 fmt : configuration_setup.ConfigurationSetupItem) -> str:
+                 fmt : ConfigurationSetupItem) -> str:
         """
         Read a configuration option of type string, firstly it will check for
         an enviroment variable (format is section_option), otherise try the
@@ -178,7 +186,7 @@ class Configuration():
         return value
 
     def _read_int(self, section : str,
-                  fmt : configuration_setup.ConfigurationSetupItem) -> int:
+                  fmt : ConfigurationSetupItem) -> int:
         """
         Read a configuration option of type int, firstly it will check for
         an enviroment variable (format is section_option), otherise try the
@@ -213,8 +221,7 @@ class Configuration():
                                    " is not a valid int.")) from ex
 
         value = value if value is not None else fmt.default_value
-
-        if value and fmt.is_required:
+        if not value and fmt.is_required:
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
@@ -223,6 +230,135 @@ class Configuration():
 
         except ValueError as ex:
             raise ValueError((f"Configuration option '{fmt.item_name}' with"
-                               " a value of '{value}' is not an int.")) from ex
+                              f" a value of '{value}' is not an int.")) from ex
+
+        return value
+
+    def _read_bool(self, section : str,
+                  fmt : ConfigurationSetupItem) -> bool:
+        """
+        Read a configuration option of type bool, firstly it will check for
+        an enviroment variable (format is section_option), otherise try the
+        configuration file (if it exists). An ValueError exception is thrown
+        it's missing and marked as is_required or is not an int.
+
+        parameters:
+            section : Configuration section
+            option : Configuration option to read
+            default : Default value (if not a required variable)
+            is_required : Is a required env variable flag (default is False)
+
+        returns:
+            A bool or None if it's not a required field.
+        """
+        env_variable : str = f"{section}_{fmt.item_name}".upper()
+        value = os.getenv(env_variable)
+
+        # If no environment variable is found, check config file (if exits)
+        if value is None and self._has_config_file:
+            try:
+                value = self._parser.getboolean(section, fmt.item_name)
+
+            except configparser.NoOptionError:
+                value = None
+
+            except configparser.NoSectionError:
+                value = None
+
+            except ValueError as ex:
+                raise ValueError((f"Config file option '{fmt.item_name}'"
+                                   " is not a valid boolean.")) from ex
+
+        value = value if value is not None else fmt.default_value
+
+        if value and fmt.is_required:
+            raise ValueError("Missing required config option "
+                             f"'{section}::{fmt.item_name}'")
+
+        if value.lower() in ["true", "1"]:
+            value : bool = True
+        elif value.lower() in ["false", "0"]:
+            value : bool = False
+        else:
+            raise ValueError((f"Configuration option '{fmt.item_name}' with "
+                              f"a value of '{value}' is not an bool."))
+
+        return value
+
+    def _read_float(self, section : str,
+                    fmt : ConfigurationSetupItem) -> float:
+        """
+        Read a configuration option of type float, firstly it will check for an
+        environment variable (format is section_option), otherise try the
+        configuration file (if it exists). An ValueError exception is thrown
+        it's missing and marked as is_required or is not an float.
+
+        parameters:
+            section : Configuration section
+            option : Configuration option to read
+            default : Default value (if not a required variable)
+            is_required : Is a required env variable flag (default is False)
+
+        returns:
+            An float or None if it's not a required field.
+        """
+        env_variable : str = f"{section}_{fmt.item_name}".upper()
+        value = os.getenv(env_variable)
+
+        # If no environment variable is found, check config file (if exits)
+        if value is None and self._has_config_file:
+            try:
+                value = self._parser.getfloat(section, fmt.item_name)
+
+            except configparser.NoOptionError:
+                value = None
+
+            except configparser.NoSectionError:
+                value = None
+
+            except ValueError as ex:
+                raise ValueError((f"Config file option '{fmt.item_name}'"
+                                   " is not a valid float.")) from ex
+
+        value = value if value is not None else fmt.default_value
+
+        if value and fmt.is_required:
+            raise ValueError("Missing required config option "
+                             f"'{section}::{fmt.item_name}'")
+
+        try:
+            value = float(value)
+
+        except ValueError as ex:
+            raise ValueError((f"Configuration option '{fmt.item_name}' with a "
+                              f"value of '{value}' is not a float.")) from ex
+
+        return value
+
+    def _read_uint(self, section : str,
+                   fmt : ConfigurationSetupItem) -> int:
+        """
+        Read a configuration option of type int, firstly it will check for
+        an enviroment variable (format is section_option), otherise try the
+        configuration file (if it exists). An ValueError exception is thrown
+        it's missing and marked as is_required or is not an unsigned int.
+
+        parameters:
+            section : Configuration section
+            option : Configuration option to read
+            default : Default value (if not a required variable)
+            is_required : Is a required env variable flag (default is False)
+
+        returns:
+            An unsigned int or None if it's not a required field.
+        """
+        value : int = self._read_int(section, fmt)
+
+        if value is None:
+            return value
+
+        if value < 0:
+            raise ValueError((f"Configuration option '{fmt.item_name}' with a"
+                              f"value of '{value}' is not an unsigned int."))
 
         return value

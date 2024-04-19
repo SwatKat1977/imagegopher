@@ -17,8 +17,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-from shared.events.event_handler import EventHandler
-from shared.singleton import Singleton
+import unittest
+from shared.unittests_configuration import TestConfiguration
 
-class GathererEventHandler(EventHandler, metaclass = Singleton):
-    ''' Gatherer event handler singleton '''
+if __name__ == '__main__':
+    unittest.main()
