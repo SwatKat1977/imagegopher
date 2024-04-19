@@ -37,7 +37,7 @@ async def async_api_post(url : str, json_data : dict = None) -> ApiResponse:
         ApiResponse which will will contain response data or just
         exception_msg if something went wrong.
     """
-    # __pylint__: disable=broad-exception-caught
+    # pylint: disable=broad-exception-caught
 
     try:
         async with aiohttp.ClientSession() as session:
