@@ -29,6 +29,7 @@ from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
+from views.health_view import create_health_blueprint
 
 class Service(Microservice):
     """ Gopher Service microservice """
@@ -106,6 +107,10 @@ class Service(Microservice):
 
         self._gather_process = GatherProcess(self._database_layer,
                                              self._logger, self._config)
+
+        self._logger.info("Registering health endpoints...")
+        health_blueprint = create_health_blueprint()
+        self._quart.register_blueprint(health_blueprint)
 
         return True
 
