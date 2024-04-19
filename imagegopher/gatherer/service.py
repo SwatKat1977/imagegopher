@@ -25,6 +25,7 @@ from configuration_layout import CONFIGURATION_LAYOUT
 from database_layer import DatabaseLayer
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
+from views.health_view import create_health_blueprint
 from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
@@ -106,6 +107,10 @@ class Service(Microservice):
 
         self._gather_process = GatherProcess(self._database_layer,
                                              self._logger, self._config)
+
+        self._logger.info("Registering health endpoints...")
+        health_blueprint = create_health_blueprint()
+        self._quart.register_blueprint(health_blueprint)
 
         return True
 

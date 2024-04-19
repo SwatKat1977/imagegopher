@@ -82,7 +82,9 @@ class Service(Microservice):
             self._logger.info("Not waiting for gatherer to wake up...")
             return True
 
-        self._logger.info("Registering configuration endpoints...")
+        self._logger.info("Gatherer has reported it's awake")
+
+        self._logger.info("Registering configuration endpoints")
         configuration_blueprint = create_configuration_blueprint(
             self._logger)
         self._quart.register_blueprint(configuration_blueprint)

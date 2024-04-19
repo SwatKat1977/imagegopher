@@ -13,28 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
-import logging
+from http import HTTPStatus
 from quart import Blueprint, request, Response
 from shared.api_view import ApiView
 
-def create_configuration_blueprint(logger : logging.Logger):
-    view = View(logger)
+def create_health_blueprint():
+    view = View()
 
-    blueprint = Blueprint('handshake_api', __name__)
+    blueprint = Blueprint('health_api', __name__)
 
-    @blueprint.route('/configuration/add_library', methods=['POST'])
-    async def add_library_request():
-        return await view.add_library_handler(request)
+    @blueprint.route('/health/status', methods=['GET'])
+    async def health_status_request():
+        return await view.health_status_handler(request)
 
     return blueprint
 
 class View(ApiView):
     ''' View container class. '''
 
-    def __init__(self, logger : logging.Logger):
-        self._logger : logging.Logger = logger.getChild(__name__)
-
-    async def add_library_handler(self, request : request):
-        print("def add_library_handler(self, request : request)")
-
-        return Response("~~PLACEHOLDEr~~", status = 500)
+    async def health_status_handler(self, request : request):
+        return Response("OK", status = HTTPStatus.OK)
