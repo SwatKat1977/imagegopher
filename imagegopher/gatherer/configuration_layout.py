@@ -33,7 +33,7 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
         ],
         "processing": [
             configuration_setup.ConfigurationSetupItem(
-                "scan_interval", configuration_setup.ConfigItemDataType.INTEGER,
+                "scan_interval", configuration_setup.ConfigItemDataType.INT,
                 default_value="60")
         ]
     }
