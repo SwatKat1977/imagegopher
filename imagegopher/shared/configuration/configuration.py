@@ -221,8 +221,7 @@ class Configuration():
                                    " is not a valid int.")) from ex
 
         value = value if value is not None else fmt.default_value
-
-        if value and fmt.is_required:
+        if not value and fmt.is_required:
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
