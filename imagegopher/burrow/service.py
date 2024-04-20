@@ -72,7 +72,7 @@ class Service(Microservice):
         if not self._manage_configuration():
             return False
 
-        if BurrowConfiguration().gatherer_wait_for_ok == "YES":
+        if BurrowConfiguration().gatherer_wait_for_ok:
             self._logger.info("Waiting for gatherer to wake up...")
 
             if not self._check_gatherer_status():
