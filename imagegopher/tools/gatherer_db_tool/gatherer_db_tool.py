@@ -21,16 +21,8 @@ import getopt
 import os
 import sqlite3
 import sys
-
-sql_create_base_path_table = """ CREATE TABLE IF NOT EXISTS base_path (
-                                 path text NOT NULL
-                                ); """
-
-sql_create_file_hash_table = """ CREATE TABLE IF NOT EXISTS file_hash (
-                                 base_path_id integer NOT NULL,
-                                 filename text NOT NULL,
-                                 hash text NOT NULL
-                                ); """
+from table_definitions import sql_create_base_path_table, \
+                              sql_create_file_hash_table
 
 def create_table(table_name : str, create_table_sql : str, connection) -> bool:
     try:
