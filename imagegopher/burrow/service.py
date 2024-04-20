@@ -22,6 +22,7 @@ import logging
 import os
 import time
 import quart
+import sqlite3
 
 from burrow_configuration import BurrowConfiguration
 from configuration_layout import CONFIGURATION_LAYOUT
@@ -35,7 +36,7 @@ GATHERER_HEALTH_API_CALL : str = "{0}:{1}/health/status"
 
 class Service(Microservice):
     """ Image Gopher Burrow microservice """
-    __slots__ = ["_quart"]
+    __slots__ = ["_db_connection", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -70,6 +71,9 @@ class Service(Microservice):
         self._logger.info("Copyright 2024 Image Gopher Development Team")
 
         if not self._manage_configuration():
+            return False
+
+        if not self._connect_to_database():
             return False
 
         if BurrowConfiguration().gatherer_wait_for_ok:
@@ -193,3 +197,21 @@ class Service(Microservice):
             return False
 
         return False
+
+    def _connect_to_database(self) -> bool:
+        db_filename : str = BurrowConfiguration().database_filename
+
+        if not os.path.isfile(db_filename):
+            self._logger.error("Database file does NOT exist!")
+            return False
+
+        try:
+            self._db_connection = sqlite3.connect(db_filename)
+
+        except sqlite3.OperationalError as ex:
+            self._logger.error("Database connect failed, reason: %s", ex)
+            return False
+
+        self._logger.info("Database connected...")
+
+        return True
