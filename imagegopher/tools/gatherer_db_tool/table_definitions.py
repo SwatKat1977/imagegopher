@@ -29,6 +29,3 @@ sql_create_file_hash_table : str = """
         filename text NOT NULL,
         hash text NOT NULL
         ); """
-
-sql_create_configuration_table : str = """
-"""

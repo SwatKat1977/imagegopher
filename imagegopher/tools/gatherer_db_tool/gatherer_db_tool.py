@@ -31,6 +31,7 @@ def create_table(table_name : str, create_table_sql : str, connection) -> bool:
 
     except sqlite3.Error as ex:
         print(f"[ERROR] Failed to create table '{table_name}', reason: {ex}!")
+        return False
 
     print(f"[INFO] Created table '{table_name}'")
 
@@ -48,7 +49,7 @@ def main(argv : list) -> None:
     override_existing : bool = False
 
     try:
-        opts, args = getopt.getopt(argv,"hd:o",["database="])
+        opts, _ = getopt.getopt(argv,"hd:o",["database="])
 
         for opt, arg in opts:
           if opt == "-h":
