@@ -26,6 +26,11 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
                 "log_level", configuration_setup.ConfigItemDataType.STRING,
                 valid_values=['DEBUG', 'INFO'], default_value="INFO")
         ],
+        "database": [
+            configuration_setup.ConfigurationSetupItem(
+                "filename", configuration_setup.ConfigItemDataType.STRING,
+                is_required=True)
+        ],
         "gatherer": [
             configuration_setup.ConfigurationSetupItem(
                 "scan_interval", configuration_setup.ConfigItemDataType.INT,

@@ -131,8 +131,11 @@ class Service(Microservice):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
-        self._logger.info("=> Logging log level    : %s",
+        self._logger.info("=> Logging log level          : %s",
                           BurrowConfiguration().logging_log_level)
+        self._logger.info("[database]")
+        self._logger.info("=> Database filename          : %s",
+                          BurrowConfiguration().database_filename)
         self._logger.info("[gatherer]")
         self._logger.info("=> Scan interval (mins)       : %s",
                           BurrowConfiguration().gatherer_scan_interval)

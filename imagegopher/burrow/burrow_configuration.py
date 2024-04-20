@@ -25,6 +25,11 @@ class BurrowConfiguration(Configuration, metaclass = Singleton):
         return BurrowConfiguration().get_entry("logging", "log_level")
 
     @property
+    def database_filename(self) -> str:
+        """ Configuration property : Database | filename """
+        return BurrowConfiguration().get_entry("database", "filename")
+
+    @property
     def gatherer_scan_interval(self) -> int:
         """ Configuration property : Gatherer scan interval """
         return BurrowConfiguration().get_entry("gatherer", "scan_interval")
