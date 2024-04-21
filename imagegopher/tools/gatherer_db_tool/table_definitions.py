@@ -20,12 +20,26 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 
 sql_create_base_path_table : str = """
         CREATE TABLE IF NOT EXISTS base_path (
-        path text NOT NULL
+            path TEXT NOT NULL
         ); """
 
 sql_create_file_hash_table : str = """
         CREATE TABLE IF NOT EXISTS file_hash (
-        base_path_id integer NOT NULL,
-        filename text NOT NULL,
-        hash text NOT NULL
+            base_path_id INTEGER NOT NULL,
+            filename TEXT NOT NULL,
+            hash TEXT NOT NULL
+        ); """
+
+'''
+Type : BOOLEAN      = 0
+       FLOAT        = 1
+       INT          = 2
+       STRING       = 3
+       UNSIGNED_INT = 4
+'''
+sql_create_config_item_table : str = """
+        CREATE TABLE config_item (
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            type INTEGER NOT NULL CHECK (type >= 0 AND type <= 4)
         ); """

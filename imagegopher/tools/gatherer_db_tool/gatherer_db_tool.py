@@ -21,21 +21,63 @@ import getopt
 import os
 import sqlite3
 import sys
+from typing import Optional
 from table_definitions import sql_create_base_path_table, \
                               sql_create_file_hash_table
 
-def create_table(table_name : str, create_table_sql : str, connection) -> bool:
-    try:
-        cursor = connection.cursor()
-        cursor.execute(create_table_sql)
+class DatabaseBuilder:
+    __slots__ = ["_database", "_filename", "_override"]
 
-    except sqlite3.Error as ex:
-        print(f"[ERROR] Failed to create table '{table_name}', reason: {ex}!")
-        return False
+    def __init__(self, filename : str, override : bool):
+        self._database : Optional[sqlite3.Connection] = None
+        self._filename : str = filename
+        self._override : bool = override
 
-    print(f"[INFO] Created table '{table_name}'")
+    def create_table(self, table_name : str, create_table_sql : str) -> bool:
+        try:
+            cursor = self._database.cursor()
+            cursor.execute(create_table_sql)
 
-    return True
+        except sqlite3.Error as ex:
+            print(f"[ERROR] Failed to create table '{table_name}', reason: {ex}!")
+            return False
+
+        print(f"[INFO] Created table '{table_name}'")
+
+        return True
+
+    def open_database(self) -> bool:
+        if os.path.isdir(self._filename):
+            print("[ERROR] Database specified is a directory!")
+            return False
+
+        if os.path.isfile(self._filename):
+            if not self._override:
+                print("[ERROR] Database specified exists!")
+                return False
+            else:
+                print("[WARNING] Database exists and is being overwritten!")
+
+        print(f"[INFO] Creating database file : {self._filename}")
+
+        try:
+            self._database = sqlite3.connect(self._filename)
+            cursor : sqlite3.Cursor = self._database.cursor()
+        except sqlite3.OperationalError as ex:
+            print(f"[ERROR[ Database connect failed, reason: {ex}")
+            return False
+
+        try:
+            cursor.execute("PRAGMA integrity_check")
+        except sqlite3.DatabaseError:
+            print("[ERROR] Database failed ingrity check!")
+            self.close_database()
+            return False
+
+        return True
+
+    def close_database(self) -> None:
+        self._database.close()
 
 def display_usage() -> None:
     print('gatherer_db_tool -d <database> -o')
@@ -45,7 +87,7 @@ def display_usage() -> None:
 
 def main(argv : list) -> None:
 
-    database_file : str = None
+    database_file : Optional[str] = None
     override_existing : bool = False
 
     try:
@@ -70,42 +112,18 @@ def main(argv : list) -> None:
         display_usage()
         return
 
-    if os.path.isdir(database_file):
-        print("[ERROR] Database specified is a directory!")
+    db_builder = DatabaseBuilder(database_file, override_existing)
+
+    if not db_builder.open_database():
         return
 
-    if os.path.isfile(database_file):
-        if not override_existing:
-            print("[ERROR] Database specified exists!")
-            return
-        else:
-            print("[WARNING] Database exists and is being overwritten!")
-
-    print(f"[INFO] Creating database file : {database_file}")
-
-    try:
-        db_connection = sqlite3.connect(database_file)
-        db_cursor = db_connection.cursor()
-    except sqlite3.OperationalError as ex:
-        print(f"[ERROR[ Database connect failed, reason: {ex}")
-        return
-
-    try:
-        db_cursor.execute("PRAGMA integrity_check")
-    except sqlite3.DatabaseError:
-        print("[ERROR] Database failed ingrity check!")
-        db_connection.close()
-        return
-
-    if not create_table("base_path", sql_create_base_path_table,
-                        db_connection) or \
-       not create_table("file_hash", sql_create_file_hash_table,
-                        db_connection):
-       db_connection.close()
+    if not db_builder.create_table("base_path", sql_create_base_path_table) or \
+       not db_builder.create_table("file_hash", sql_create_file_hash_table):
+       db_builder.close_database()
        return
 
     print("[INFO] Database successfully created!")
-    db_connection.close()
-    
+    db_builder.close_database()
+
 if __name__ == '__main__':
     main(sys.argv[1:])
