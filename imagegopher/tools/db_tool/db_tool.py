@@ -26,6 +26,16 @@ from table_definitions import sql_create_base_path_table, \
                               sql_create_file_hash_table, \
                               sql_create_config_item_table
 
+CONFIG_ITEM_TYPE_BOOLEAN      = 0
+CONFIG_ITEM_TYPE_FLOAT        = 1
+CONFIG_ITEM_TYPE_INT          = 2
+CONFIG_ITEM_TYPE_STRING       = 3
+CONFIG_ITEM_TYPE_UNSIGNED_INT = 4
+
+sql_config_item_insert = """
+    INSERT INTO config_item(key, value, type) VALUES(?, ?, ?);
+    """
+
 class DatabaseBuilder:
     __slots__ = ["_database", "_filename", "_override"]
 
@@ -84,6 +94,14 @@ class DatabaseBuilder:
         if not self._create_table("config_item", sql_create_config_item_table):
            return False
 
+        if not self._insert_entry(sql_config_item_insert,
+                                  ("last_update", "0",
+                                   CONFIG_ITEM_TYPE_INT)) or \
+           not self._insert_entry(sql_config_item_insert,
+                                  ("scan_interval", "60",
+                                   CONFIG_ITEM_TYPE_UNSIGNED_INT)):
+            return False
+
         return True
 
     def _create_table(self, table_name : str, create_table_sql : str) -> bool:
@@ -98,6 +116,19 @@ class DatabaseBuilder:
         print(f"[INFO] Created table '{table_name}'")
 
         return True
+
+    def _insert_entry(self, sql : str, data : tuple) -> Optional[int]:
+        cursor : sqlite3.Cursor = self._database.cursor()
+
+        try:
+            cursor.execute(sql, data)
+            self._database.commit()
+
+        except sqlite3.Error as ex:
+            print(f"[ERROR] SQL insert statement failed, reason: {ex}!")
+            return None
+
+        return cursor.lastrowid
 
 def display_usage() -> None:
     print('gatherer_db_tool -d <database> -o')
@@ -139,6 +170,7 @@ def main(argv : list) -> None:
 
     if not db_builder.create_tables():
        db_builder.close_database()
+       print("[ERROR] Database table creation failed, aborting!")
        return
 
     print("[INFO] Database successfully created!")

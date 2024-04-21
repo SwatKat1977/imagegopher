@@ -41,5 +41,7 @@ sql_create_config_item_table : str = """
         CREATE TABLE IF NOT EXISTS config_item (
             key TEXT NOT NULL,
             value TEXT NOT NULL,
-            type INTEGER NOT NULL CHECK (type >= 0 AND type <= 4)
+            type INTEGER NOT NULL CHECK (type >= 0 AND type <= 4),
+
+            UNIQUE(key)
         ); """
