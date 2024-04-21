@@ -44,6 +44,13 @@ class DatabaseBuilder:
                 print("[ERROR] Database specified exists!")
                 return False
             else:
+                try:
+                    os.remove(self._filename)
+
+                except OSError as ex:
+                    print(f"Failed to delete old database, reason: {ex}")
+                    return False
+
                 print("[WARNING] Database exists and is being overwritten!")
 
         print(f"[INFO] Creating database file : {self._filename}")
