@@ -23,7 +23,8 @@ import sqlite3
 import sys
 from typing import Optional
 from table_definitions import sql_create_base_path_table, \
-                              sql_create_file_hash_table
+                              sql_create_file_hash_table, \
+                              sql_create_config_item_table
 
 class DatabaseBuilder:
     __slots__ = ["_database", "_filename", "_override"]
@@ -32,19 +33,6 @@ class DatabaseBuilder:
         self._database : Optional[sqlite3.Connection] = None
         self._filename : str = filename
         self._override : bool = override
-
-    def create_table(self, table_name : str, create_table_sql : str) -> bool:
-        try:
-            cursor = self._database.cursor()
-            cursor.execute(create_table_sql)
-
-        except sqlite3.Error as ex:
-            print(f"[ERROR] Failed to create table '{table_name}', reason: {ex}!")
-            return False
-
-        print(f"[INFO] Created table '{table_name}'")
-
-        return True
 
     def open_database(self) -> bool:
         if os.path.isdir(self._filename):
@@ -78,6 +66,31 @@ class DatabaseBuilder:
 
     def close_database(self) -> None:
         self._database.close()
+
+    def create_tables(self) -> bool:
+        if not self._create_table("base_path", sql_create_base_path_table):
+            return False
+
+        if not self._create_table("file_hash", sql_create_file_hash_table):
+           return False
+
+        if not self._create_table("config_item", sql_create_config_item_table):
+           return False
+
+        return True
+
+    def _create_table(self, table_name : str, create_table_sql : str) -> bool:
+        try:
+            cursor = self._database.cursor()
+            cursor.execute(create_table_sql)
+
+        except sqlite3.Error as ex:
+            print(f"[ERROR] Failed to create table '{table_name}', reason: {ex}!")
+            return False
+
+        print(f"[INFO] Created table '{table_name}'")
+
+        return True
 
 def display_usage() -> None:
     print('gatherer_db_tool -d <database> -o')
@@ -117,8 +130,7 @@ def main(argv : list) -> None:
     if not db_builder.open_database():
         return
 
-    if not db_builder.create_table("base_path", sql_create_base_path_table) or \
-       not db_builder.create_table("file_hash", sql_create_file_hash_table):
+    if not db_builder.create_tables():
        db_builder.close_database()
        return
 

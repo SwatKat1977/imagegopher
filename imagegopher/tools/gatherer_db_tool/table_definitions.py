@@ -38,7 +38,7 @@ Type : BOOLEAN      = 0
        UNSIGNED_INT = 4
 '''
 sql_create_config_item_table : str = """
-        CREATE TABLE config_item (
+        CREATE TABLE IF NOT EXISTS config_item (
             key TEXT NOT NULL,
             value TEXT NOT NULL,
             type INTEGER NOT NULL CHECK (type >= 0 AND type <= 4)
