@@ -33,9 +33,6 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
         ],
         "gatherer": [
             configuration_setup.ConfigurationSetupItem(
-                "scan_interval", configuration_setup.ConfigItemDataType.INT,
-                default_value="60"),
-            configuration_setup.ConfigurationSetupItem(
                 "gatherer_host", configuration_setup.ConfigItemDataType.STRING,
                 is_required=True),
             configuration_setup.ConfigurationSetupItem(

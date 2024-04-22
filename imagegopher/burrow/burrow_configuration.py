@@ -30,11 +30,6 @@ class BurrowConfiguration(Configuration, metaclass = Singleton):
         return BurrowConfiguration().get_entry("database", "filename")
 
     @property
-    def gatherer_scan_interval(self) -> int:
-        """ Configuration property : Gatherer scan interval """
-        return BurrowConfiguration().get_entry("gatherer", "scan_interval")
-
-    @property
     def gatherer_host(self) -> str:
         """ Configuration property : Gatherer host """
         return BurrowConfiguration().get_entry("gatherer", "gatherer_host")

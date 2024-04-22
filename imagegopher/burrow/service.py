@@ -21,8 +21,8 @@ from http import HTTPStatus
 import logging
 import os
 import time
-import quart
 import sqlite3
+import quart
 
 from burrow_configuration import BurrowConfiguration
 from configuration_layout import CONFIGURATION_LAYOUT
@@ -41,6 +41,7 @@ class Service(Microservice):
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
+        self._db_connection = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -122,11 +123,6 @@ class Service(Microservice):
 
         self._logger.setLevel(BurrowConfiguration().logging_log_level)
 
-        if BurrowConfiguration().gatherer_scan_interval <= 1:
-            self._logger.error(
-                "Gatherer Processing interval below 1 minute is invalid")
-            return False
-
         if BurrowConfiguration().gatherer_wait_for_ok_retries <= 0:
             self._logger.error(
                 "Gatherer health check retries of 0 or below is invalid")
@@ -141,8 +137,6 @@ class Service(Microservice):
         self._logger.info("=> Database filename          : %s",
                           BurrowConfiguration().database_filename)
         self._logger.info("[gatherer]")
-        self._logger.info("=> Scan interval (mins)       : %s",
-                          BurrowConfiguration().gatherer_scan_interval)
         self._logger.info("=> Gatherer                   : %s:%d",
                           BurrowConfiguration().gatherer_host,
                           BurrowConfiguration().gatherer_port)
