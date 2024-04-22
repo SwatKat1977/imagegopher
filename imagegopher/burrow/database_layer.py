@@ -13,3 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
+import sqlite3
+
+class DatabaseLayer:
+    """ Database interface layer """
+    __slots__ = ["_db_connection"]
+
+    def __init__(self, database : sqlite3.Connection) -> None:
+        self._db_connection : sqlite3.Connection = database
