@@ -23,7 +23,6 @@ import os
 import time
 import sqlite3
 import quart
-
 from burrow_configuration import BurrowConfiguration
 from configuration_layout import CONFIGURATION_LAYOUT
 from views.configuration_view import create_configuration_blueprint
