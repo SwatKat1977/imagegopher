@@ -27,11 +27,11 @@ import quart
 from burrow_configuration import BurrowConfiguration
 from configuration_layout import CONFIGURATION_LAYOUT
 from views.configuration_view import create_configuration_blueprint
+from database_layer import DatabaseLayer
 from shared.http_helpers import ApiResponse, api_get
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
-from database_layer import DatabaseLayer
 
 GATHERER_HEALTH_API_CALL : str = "{0}:{1}/health/status"
 

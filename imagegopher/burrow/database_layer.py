@@ -20,6 +20,7 @@ from typing import Optional
 SQL_INSERT_BASE_PATH : str = "INSERT INTO base_path(path) VALUES(?)"
 
 class DatabaseLayer:
+    # pylint: disable=too-few-public-methods
     """ Database interface layer """
     __slots__ = ["_db_connection", "_logger"]
 
@@ -61,6 +62,7 @@ class DatabaseLayer:
             self._db_connection.commit()
 
         except sqlite3.Error as ex:
-            raise ValueError(f"[ERROR] SQL insert statement failed, reason: {ex}!")
+            raise ValueError(
+                f"[ERROR] SQL insert statement failed, reason: {ex}!") from ex
 
         return cursor.lastrowid
