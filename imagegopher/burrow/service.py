@@ -31,17 +31,19 @@ from shared.http_helpers import ApiResponse, api_get
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
+from database_layer import DatabaseLayer
 
 GATHERER_HEALTH_API_CALL : str = "{0}:{1}/health/status"
 
 class Service(Microservice):
     """ Image Gopher Burrow microservice """
-    __slots__ = ["_db_connection", "_quart"]
+    __slots__ = ["_db_connection", "_db_layer", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
         self._db_connection = None
+        self._db_layer = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -91,7 +93,7 @@ class Service(Microservice):
 
         self._logger.info("Registering configuration endpoints")
         configuration_blueprint = create_configuration_blueprint(
-            self._logger)
+            self._logger, self._db_layer)
         self._quart.register_blueprint(configuration_blueprint)
 
         return True
@@ -207,5 +209,7 @@ class Service(Microservice):
             return False
 
         self._logger.info("Database connected...")
+
+        self._db_layer = DatabaseLayer(self._logger, self._db_connection)
 
         return True
