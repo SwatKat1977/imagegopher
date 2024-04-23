@@ -21,7 +21,6 @@ from typing import Optional
 SQL_INSERT_BASE_PATH : str = "INSERT INTO base_path(path) VALUES(?)"
 
 class DatabaseLayer:
-    # pylint: disable=too-few-public-methods
     """ Database interface layer """
     __slots__ = ["_db_connection", "_logger"]
 
@@ -56,6 +55,7 @@ class DatabaseLayer:
         return True
 
     def update_config_item_scan_interval(self, interval : int) -> bool:
+        ''' Update the configuration item 'Scan Interval '''
 
         print(interval)
         sql : str = 'UPDATE config_item set value=? WHERE key="scan_interval"'
