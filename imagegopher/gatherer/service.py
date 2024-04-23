@@ -120,11 +120,15 @@ class Service(Microservice):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
-        self._logger.info("=> Logging log level    : %s",
+        self._logger.info("=> Logging log level               : %s",
                           self._config.get_entry("logging", "log_level"))
         self._logger.info("[database]")
-        self._logger.info("=> Filename             : %s",
+        self._logger.info("=> Filename                        : %s",
                           self._config.get_entry("database", "filename"))
+        self._logger.info("[general]")
+        self._logger.info("=> Config Check Interval (seconds) : %s",
+                          self._config.get_entry("general",
+                                                 "config_check_interval"))
 
     def _shutdown(self):
         ''' Shutdown logic. '''
