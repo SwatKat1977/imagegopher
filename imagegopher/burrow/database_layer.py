@@ -29,6 +29,20 @@ class DatabaseLayer:
         self._db_connection : sqlite3.Connection = database
         self._logger = logger.getChild(__name__)
 
+    def valid_base_path(self, base_path : str) -> bool:
+        cursor = self._db_connection.cursor()
+
+        try:
+            result = cursor.execute("SELECT rowid FROM base_path WHERE PATH = ?",
+                                    (base_path,))
+
+        except sqlite3.Error as ex:
+            self._logger.error(f"SQL select statement failed, reason: {ex}!")
+            return False
+
+        raw_results : list = result.fetchall()
+        return True if raw_results else False
+
     def add_base_path(self, base_path : str) -> bool:
         ''' Add new base path to the database '''
 
@@ -57,7 +71,6 @@ class DatabaseLayer:
     def update_config_item_scan_interval(self, interval : int) -> bool:
         ''' Update the configuration item 'Scan Interval '''
 
-        print(interval)
         sql : str = 'UPDATE config_item set value=? WHERE key="scan_interval"'
 
         try:
