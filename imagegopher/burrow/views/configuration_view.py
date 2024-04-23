@@ -25,60 +25,9 @@ from quart import Blueprint, request, Response
 from shared.api_view import ApiView
 from shared.api_response import ApiResponse
 from database_layer import DatabaseLayer
-
-''' Definition of the add base path request schema '''
-SCHEMA_REQUEST_ADDBASEPATH = \
-    {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-
-        "type" : "object",
-        "additionalProperties" : False,
-
-        "properties":
-        {
-            "path":
-            {
-                "type" : "string"
-            }
-        },
-        "required" : ["path"]
-    }
-
-''' Definition of the add base path request schema '''
-SCHEMA_REQUEST_ADDBASEPATH = \
-    {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-
-        "type" : "object",
-        "additionalProperties" : False,
-
-        "properties":
-        {
-            "path":
-            {
-                "type" : "string"
-            }
-        },
-        "required" : ["path"]
-    }
-
-''' Definition of the set scan interval request schema '''
-SCHEMA_REQUEST_SETSCANINTERVAL = \
-    {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-
-        "type" : "object",
-        "additionalProperties" : False,
-
-        "properties":
-        {
-            "interval":
-            {
-                "type" : "integer"
-            }
-        },
-        "required" : ["interval"]
-    }
+from views.configuration_view_schemas import SCHEMA_REQUEST_VALIDBASEPATH, \
+                                             SCHEMA_REQUEST_ADDBASEPATH, \
+                                             SCHEMA_REQUEST_SETSCANINTERVAL
 
 def create_configuration_blueprint(logger : logging.Logger,
                                    db_layer : DatabaseLayer):
