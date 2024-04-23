@@ -80,6 +80,31 @@ class DatabaseLayer:
 
         return True
 
+    def get_config_item_scan_interval(self) -> int | None:
+        ''' Get the configuration item 'Scan Interval '''
+
+        cursor = self._db_connection.cursor()
+        sql : str = 'SELECT value FROM config_item WHERE key="scan_interval"'
+
+        result = cursor.execute(sql)
+        results : list = result.fetchall()
+
+        if not results:
+            self._logger.error("Cannot get 'scan_interval' config option")
+            return None
+
+        return int(results[0][0])
+        return 20000 # int(results[1])
+        try:
+            self._sql_update(sql, (interval,))
+
+        except ValueError as ex:
+            self._logger.error(
+                f"Update 'scan_interval' config option failed, reason: {ex}!")
+            return False
+
+        return self._update_last_update()
+
     def update_config_item_scan_interval(self, interval : int) -> bool:
         ''' Update the configuration item 'Scan Interval '''
 
