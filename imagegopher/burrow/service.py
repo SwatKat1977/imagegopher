@@ -21,11 +21,12 @@ from http import HTTPStatus
 import logging
 import os
 import time
+import sqlite3
 import quart
-
 from burrow_configuration import BurrowConfiguration
 from configuration_layout import CONFIGURATION_LAYOUT
 from views.configuration_view import create_configuration_blueprint
+from database_layer import DatabaseLayer
 from shared.http_helpers import ApiResponse, api_get
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
@@ -35,11 +36,13 @@ GATHERER_HEALTH_API_CALL : str = "{0}:{1}/health/status"
 
 class Service(Microservice):
     """ Image Gopher Burrow microservice """
-    __slots__ = ["_quart"]
+    __slots__ = ["_db_connection", "_db_layer", "_quart"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
         self._quart : quart.Quart = quart_instance
+        self._db_connection = None
+        self._db_layer = None
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -72,7 +75,10 @@ class Service(Microservice):
         if not self._manage_configuration():
             return False
 
-        if BurrowConfiguration().gatherer_wait_for_ok == "YES":
+        if not self._connect_to_database():
+            return False
+
+        if BurrowConfiguration().gatherer_wait_for_ok:
             self._logger.info("Waiting for gatherer to wake up...")
 
             if not self._check_gatherer_status():
@@ -86,7 +92,7 @@ class Service(Microservice):
 
         self._logger.info("Registering configuration endpoints")
         configuration_blueprint = create_configuration_blueprint(
-            self._logger)
+            self._logger, self._db_layer)
         self._quart.register_blueprint(configuration_blueprint)
 
         return True
@@ -118,11 +124,6 @@ class Service(Microservice):
 
         self._logger.setLevel(BurrowConfiguration().logging_log_level)
 
-        if BurrowConfiguration().gatherer_scan_interval <= 1:
-            self._logger.error(
-                "Gatherer Processing interval below 1 minute is invalid")
-            return False
-
         if BurrowConfiguration().gatherer_wait_for_ok_retries <= 0:
             self._logger.error(
                 "Gatherer health check retries of 0 or below is invalid")
@@ -131,11 +132,12 @@ class Service(Microservice):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
-        self._logger.info("=> Logging log level    : %s",
+        self._logger.info("=> Logging log level          : %s",
                           BurrowConfiguration().logging_log_level)
+        self._logger.info("[database]")
+        self._logger.info("=> Database filename          : %s",
+                          BurrowConfiguration().database_filename)
         self._logger.info("[gatherer]")
-        self._logger.info("=> Scan interval (mins)       : %s",
-                          BurrowConfiguration().gatherer_scan_interval)
         self._logger.info("=> Gatherer                   : %s:%d",
                           BurrowConfiguration().gatherer_host,
                           BurrowConfiguration().gatherer_port)
@@ -190,3 +192,23 @@ class Service(Microservice):
             return False
 
         return False
+
+    def _connect_to_database(self) -> bool:
+        db_filename : str = BurrowConfiguration().database_filename
+
+        if not os.path.isfile(db_filename):
+            self._logger.error("Database file does NOT exist!")
+            return False
+
+        try:
+            self._db_connection = sqlite3.connect(db_filename)
+
+        except sqlite3.OperationalError as ex:
+            self._logger.error("Database connect failed, reason: %s", ex)
+            return False
+
+        self._logger.info("Database connected...")
+
+        self._db_layer = DatabaseLayer(self._logger, self._db_connection)
+
+        return True
