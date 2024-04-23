@@ -96,10 +96,6 @@ class Service(Microservice):
 
         self._logger.setLevel(self._config.get_entry("logging", "log_level"))
 
-        if self._config.get_entry("processing", "scan_interval") <= 1:
-            self._logger.error("Processing interval below 1 minute is invalid")
-            return False
-
         self._display_configuration_details()
 
         if not self._connect_to_database():
@@ -129,9 +125,6 @@ class Service(Microservice):
         self._logger.info("[database]")
         self._logger.info("=> Filename             : %s",
                           self._config.get_entry("database", "filename"))
-        self._logger.info("[processing]")
-        self._logger.info("=> Scan interval (mins) : %s",
-                          self._config.get_entry("processing", "scan_interval"))
 
     def _shutdown(self):
         ''' Shutdown logic. '''

@@ -30,7 +30,7 @@ ONE_MINUTE_IN_SECONDS : int = 60
 class GatherProcess:    # pylint: disable=too-few-public-methods
     ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
-                 "_last_process_time", "_logger"]
+                 "_last_process_time", "_logger", "_scan_interval"]
 
     def __init__(self, db_layer : DatabaseLayer,
                  logger : logging.Logger, config : Configuration) -> None:
@@ -39,6 +39,11 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._gatherers = []
         self._last_process_time : float = 0
         self._logger = logger
+
+        self._scan_interval : int = \
+            self._db_layer.get_config_item_scan_interval()
+        self._logger.info("Scan interval time (seconds) : %d",
+                          self._scan_interval)
 
         self._base_paths = self._cache_base_paths_from_database()
         self._base_paths.sort()
@@ -50,9 +55,7 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
 
     def process_files(self):
         ''' Attempt to gather image files that are either new or modified '''
-        interval : int = self._config.get_entry("processing",
-                                                "scan_interval") * \
-            ONE_MINUTE_IN_SECONDS
+        interval : int = self._scan_interval * ONE_MINUTE_IN_SECONDS
         start_time : float = time()
         process_now : bool = False
 
