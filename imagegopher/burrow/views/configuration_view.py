@@ -35,15 +35,20 @@ def create_configuration_blueprint(logger : logging.Logger,
 
     blueprint = Blueprint('handshake_api', __name__)
 
+    logger.info("=> Added route : /configuration/valid_library")
+    @blueprint.route('/configuration/valid_library', methods=['POST'])
+    async def valid_library_request():
+        return await view.valid_library_handler()
+
     logger.info("=> Added route : /configuration/add_library")
     @blueprint.route('/configuration/add_library', methods=['POST'])
     async def add_library_request():
-        return await view.add_library_handler(request)
+        return await view.add_library_handler()
 
     logger.info("=> Added route : /configuration/set_scan_interval")
     @blueprint.route('/configuration/set_scan_interval', methods=['POST'])
     async def set_scan_interval_request():
-        return await view.set_scan_interval_handler(request)
+        return await view.set_scan_interval_handler()
 
     return blueprint
 
@@ -56,10 +61,35 @@ class View(ApiView):
 
         mimetypes.init()
 
-    async def add_library_handler(self, api_request : request):
+    async def valid_library_handler(self):
+        request_obj : ApiResponse = self._validate_json_body(
+            await request.get_data(), SCHEMA_REQUEST_VALIDBASEPATH)
+
+        if request_obj.status_code != HTTPStatus.OK:
+            return self._generate_error_response(request_obj.exception_msg)
+
+        try:
+            exists : bool = self._db_layer.valid_base_path(request_obj.body.path)
+
+        except ValueError as ex:
+            response : dict = {
+                "status" : "FAIL",
+                "exception" : str(ex)
+            }
+            return Response(json.dumps(response), status=HTTPStatus.OK,
+                            content_type=mimetypes.types_map['.json'])
+
+        response : dict = {
+            "status" : "OK",
+            "exists" : exists
+        }
+        return Response(json.dumps(response), status=HTTPStatus.OK,
+                        content_type=mimetypes.types_map['.json'])
+
+    async def add_library_handler(self):
 
         request_obj : ApiResponse = self._validate_json_body(
-            await api_request.get_data(), SCHEMA_REQUEST_ADDBASEPATH)
+            await request.get_data(), SCHEMA_REQUEST_ADDBASEPATH)
 
         if request_obj.status_code != HTTPStatus.OK:
             return self._generate_error_response(request_obj.exception_msg)
@@ -85,10 +115,10 @@ class View(ApiView):
         return Response(json.dumps(response), status=HTTPStatus.OK,
                         content_type=mimetypes.types_map['.json'])
 
-    async def set_scan_interval_handler(self, api_request : request):
+    async def set_scan_interval_handler(self):
 
         request_obj : ApiResponse = self._validate_json_body(
-            await api_request.get_data(), SCHEMA_REQUEST_SETSCANINTERVAL)
+            await request.get_data(), SCHEMA_REQUEST_SETSCANINTERVAL)
 
         if request_obj.status_code != HTTPStatus.OK:
             return self._generate_error_response(request_obj.exception_msg)

@@ -30,6 +30,7 @@ class DatabaseLayer:
         self._logger = logger.getChild(__name__)
 
     def valid_base_path(self, base_path : str) -> bool:
+        ''' Check if base path exists already '''
         cursor = self._db_connection.cursor()
 
         try:
@@ -46,18 +47,8 @@ class DatabaseLayer:
     def add_base_path(self, base_path : str) -> bool:
         ''' Add new base path to the database '''
 
-        cursor = self._db_connection.cursor()
-
-        try:
-            result = cursor.execute("SELECT rowid FROM base_path WHERE PATH = ?",
-                                    (base_path,))
-            raw_results : list = result.fetchall()
-            if raw_results:
-                raise ValueError("Base path already exists!")
-
-        except sqlite3.Error as ex:
-            self._logger.error(f"SQL select statement failed, reason: {ex}!")
-            return False
+        if self.valid_base_path(base_path):
+            raise ValueError("Base path already exists!")
 
         try:
             self._sql_insert(SQL_INSERT_BASE_PATH, (base_path,))
