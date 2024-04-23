@@ -22,7 +22,7 @@ import os
 import sqlite3
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
-from database_layer import DatabaseLayer
+from shared.database_layer import DatabaseLayer
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
 from views.health_view import create_health_blueprint
@@ -156,6 +156,6 @@ class Service(Microservice):
 
         self._logger.info("Database connected...")
 
-        self._database_layer = DatabaseLayer(self._db_connection)
+        self._database_layer = DatabaseLayer(self._logger, self._db_connection)
 
         return True

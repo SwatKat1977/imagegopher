@@ -21,7 +21,7 @@ import logging
 import os
 from time import time
 from typing import List
-from database_layer import BasePathEntry, DatabaseLayer, FileMatchState
+from shared.database_layer import BasePathEntry, DatabaseLayer, FileMatchState
 from file_gatherer import FileGatherer
 from shared.configuration.configuration import Configuration
 
