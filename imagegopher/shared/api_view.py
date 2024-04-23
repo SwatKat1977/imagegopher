@@ -22,6 +22,7 @@ import http
 from types import SimpleNamespace
 import typing
 import jsonschema
+from quart import Response
 from shared.api_response import ApiResponse
 
 class ApiView:
@@ -80,3 +81,13 @@ class ApiView:
             data, object_hook=lambda d: SimpleNamespace(**d)),
                            status_code=http.HTTPStatus.OK,
                            content_type=self.CONTENT_TYPE_JSON)
+
+    def _generate_error_response(self, message : str):
+
+        err_response : dict = {
+            "status" : "failed",
+            "message" : message
+        }
+
+        return Response(json.dumps(err_response), status=http.HTTPStatus.OK,
+                        content_type=self.CONTENT_TYPE_JSON)
