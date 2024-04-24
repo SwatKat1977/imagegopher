@@ -24,13 +24,15 @@ from typing import List
 from shared.database_layer import BasePathEntry, DatabaseLayer, FileMatchState
 from file_gatherer import FileGatherer
 from shared.configuration.configuration import Configuration
+from shared.events.event import Event
 
 ONE_MINUTE_IN_SECONDS : int = 60
 
 class GatherProcess:    # pylint: disable=too-few-public-methods
     ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
-                 "_last_process_time", "_logger", "_scan_interval"]
+                 "_last_process_time", "_logger", "_refresh_config",
+                 "_scan_interval"]
 
     def __init__(self, db_layer : DatabaseLayer,
                  logger : logging.Logger, config : Configuration) -> None:
@@ -39,6 +41,7 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._gatherers = []
         self._last_process_time : float = 0
         self._logger = logger
+        self._refresh_config : bool = False
 
         self._scan_interval : int = \
             self._db_layer.get_config_item_scan_interval()
@@ -117,6 +120,9 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         # Always set last process time to current time and not to now because
         # we don't know how long processing takes.
         self._last_process_time = time()
+
+    def db_refresh_event_handler(self, _ : Event):
+        self._refresh_config = True
 
     def _cache_base_paths_from_database(self) -> List[BasePathEntry]:
         self._logger.info("Caching base paths from database...")

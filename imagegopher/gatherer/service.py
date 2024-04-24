@@ -24,7 +24,9 @@ import sqlite3
 from time import time
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
+from event_type import EventType
 from shared.database_layer import DatabaseLayer
+from shared.events.event import Event
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
 from views.health_view import create_health_blueprint
@@ -121,6 +123,8 @@ class Service(Microservice):
         self._gather_process = GatherProcess(self._database_layer,
                                              self._logger, self._config)
 
+        self._register_events()
+
         self._logger.info("Registering health endpoints...")
         health_blueprint = create_health_blueprint()
         self._quart.register_blueprint(health_blueprint)
@@ -149,6 +153,9 @@ class Service(Microservice):
         if self._state.trigger_refresh_timestamp and \
            now >= self._state.trigger_refresh_timestamp:
             self._logger.info("Scheduled dynamic config refresh event added")
+
+            GathererEventHandler().queue_event(
+                Event(EventType.RefreshConfiguration))
             self._state.trigger_refresh_timestamp = 0
 
         GathererEventHandler().process_next_event()
@@ -202,3 +209,10 @@ class Service(Microservice):
         self._state.last_db_update_check = int(time())
 
         return True
+
+    def _register_events(self) -> None:
+         self._logger.info("Registering 'RefreshConfiguration' event handler")
+         GathererEventHandler().register_event(
+             EventType.RefreshConfiguration,
+             self._gather_process.db_refresh_event_handler)
+
