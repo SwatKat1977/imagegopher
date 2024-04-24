@@ -31,10 +31,11 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
                 "filename", configuration_setup.ConfigItemDataType.STRING,
                 is_required=True)
         ],
-        "processing": [
+        "general": [
             configuration_setup.ConfigurationSetupItem(
-                "scan_interval", configuration_setup.ConfigItemDataType.INT,
-                default_value="60")
+                "config_check_interval",
+                configuration_setup.ConfigItemDataType.UNSIGNED_INT,
+                default_value="6000")
         ]
     }
 )

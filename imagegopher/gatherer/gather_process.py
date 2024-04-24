@@ -21,16 +21,21 @@ import logging
 import os
 from time import time
 from typing import List
-from database_layer import BasePathEntry, DatabaseLayer, FileMatchState
 from file_gatherer import FileGatherer
 from shared.configuration.configuration import Configuration
+from shared.database_layer import BasePathEntry, DatabaseLayer, FileMatchState
+from shared.events.event import Event
 
 ONE_MINUTE_IN_SECONDS : int = 60
 
-class GatherProcess:    # pylint: disable=too-few-public-methods
+class GatherProcess:
+    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-instance-attributes
     ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
-                 "_last_process_time", "_logger"]
+                 "_last_process_time", "_logger", "_refresh_config",
+                 "_refresh_library", "_scan_interval"]
 
     def __init__(self, db_layer : DatabaseLayer,
                  logger : logging.Logger, config : Configuration) -> None:
@@ -39,6 +44,10 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._gatherers = []
         self._last_process_time : float = 0
         self._logger = logger
+        self._refresh_config : bool = False
+        self._refresh_library : bool = False
+
+        self._get_config_items_from_database()
 
         self._base_paths = self._cache_base_paths_from_database()
         self._base_paths.sort()
@@ -50,11 +59,25 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
 
     def process_files(self):
         ''' Attempt to gather image files that are either new or modified '''
-        interval : int = self._config.get_entry("processing",
-                                                "scan_interval") * \
-            ONE_MINUTE_IN_SECONDS
+        interval : int = self._scan_interval * ONE_MINUTE_IN_SECONDS
         start_time : float = time()
         process_now : bool = False
+
+        if self._refresh_config:
+            self._get_config_items_from_database()
+            self._refresh_config = False
+
+        if self._refresh_library:
+            self._base_paths = self._cache_base_paths_from_database()
+            self._base_paths.sort()
+
+            # Generate file gatherer per base path.
+            self._gatherers.clear()
+            for path_entry in self._base_paths:
+                gatherer = FileGatherer(self._logger, path_entry.path)
+                self._gatherers.append(gatherer)
+
+            self._refresh_library = False
 
         if self._last_process_time == 0:
             self._logger.info("First time execution of file gathering...")
@@ -115,6 +138,14 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         # we don't know how long processing takes.
         self._last_process_time = time()
 
+    def config_refresh_event_handler(self, _ : Event):
+        """ Configuration refresh event handler. """
+        self._refresh_config = True
+
+    def library_refresh_event_handler(self, _ : Event):
+        """ Library refresh event handler. """
+        self._refresh_library = True
+
     def _cache_base_paths_from_database(self) -> List[BasePathEntry]:
         self._logger.info("Caching base paths from database...")
         base_paths = self._db_layer.get_base_paths()
@@ -122,3 +153,9 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._logger.info("entries base paths entries cached: %d", len(base_paths))
 
         return base_paths
+
+    def _get_config_items_from_database(self) -> None:
+        self._scan_interval : int = \
+            self._db_layer.get_config_item_scan_interval()
+        self._logger.info("Scan interval time (seconds) : %d",
+                          self._scan_interval)

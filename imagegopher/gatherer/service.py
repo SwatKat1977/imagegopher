@@ -17,24 +17,50 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+from dataclasses import dataclass
 import logging
 import os
 import sqlite3
+from time import time
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
-from database_layer import DatabaseLayer
+from event_type import EventType
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
+from views.configuration_view import create_configuration_blueprint
 from views.health_view import create_health_blueprint
 from shared.configuration.configuration import Configuration
+from shared.database_layer import DatabaseLayer
+from shared.events.event import Event
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
 
+ONE_MINUTE_SECONDS : int = 60
+
+@dataclass(init=False)
+class GathererState:
+    """ Class for keeping track of gatherer state. """
+
+    # Last time the configuration was updated (from database).
+    last_db_update: int = 0
+
+    # Timestamp that the database was cheched for updates.
+    last_db_update_check : int = 0
+
+    # Timestamp when to trigger a configuration refresh event.
+    config_refresh_event_timestamp : int = 0
+
+    # Last known library hash from the database.
+    last_library_hash : str = "<UNKNOWN>"
+
+    # Timestamp when library hash was last checked.
+    last_library_check : int= 0
+
 class Service(Microservice):
     """ Gopher Service microservice """
     __slots__ = ["_config", "_database_layer", "_db_connection",
-                 "_gather_process", "_quart"]
+                 "_gather_process", "_quart", "_state"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -43,6 +69,7 @@ class Service(Microservice):
         self._database_layer : sqlite3.Connection = None
         self._db_connection : sqlite3.Connection = None
         self._gather_process : GatherProcess = None
+        self._state : GathererState = GathererState()
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -96,10 +123,6 @@ class Service(Microservice):
 
         self._logger.setLevel(self._config.get_entry("logging", "log_level"))
 
-        if self._config.get_entry("processing", "scan_interval") <= 1:
-            self._logger.error("Processing interval below 1 minute is invalid")
-            return False
-
         self._display_configuration_details()
 
         if not self._connect_to_database():
@@ -107,6 +130,12 @@ class Service(Microservice):
 
         self._gather_process = GatherProcess(self._database_layer,
                                              self._logger, self._config)
+
+        self._register_events()
+
+        self._logger.info("Registering configuration endpoints...")
+        config_blueprint = create_configuration_blueprint()
+        self._quart.register_blueprint(config_blueprint)
 
         self._logger.info("Registering health endpoints...")
         health_blueprint = create_health_blueprint()
@@ -116,6 +145,11 @@ class Service(Microservice):
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
+
+        self._check_for_config_updates()
+
+        self._check_for_library_updates()
+
         GathererEventHandler().process_next_event()
 
         self._gather_process.process_files()
@@ -124,14 +158,15 @@ class Service(Microservice):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
-        self._logger.info("=> Logging log level    : %s",
+        self._logger.info("=> Logging log level               : %s",
                           self._config.get_entry("logging", "log_level"))
         self._logger.info("[database]")
-        self._logger.info("=> Filename             : %s",
+        self._logger.info("=> Filename                        : %s",
                           self._config.get_entry("database", "filename"))
-        self._logger.info("[processing]")
-        self._logger.info("=> Scan interval (mins) : %s",
-                          self._config.get_entry("processing", "scan_interval"))
+        self._logger.info("[general]")
+        self._logger.info("=> Config Check Interval (seconds) : %s",
+                          self._config.get_entry("general",
+                                                 "config_check_interval"))
 
     def _shutdown(self):
         ''' Shutdown logic. '''
@@ -156,6 +191,78 @@ class Service(Microservice):
 
         self._logger.info("Database connected...")
 
-        self._database_layer = DatabaseLayer(self._db_connection)
+        self._database_layer = DatabaseLayer(self._logger, self._db_connection)
+
+        # Get the last configuration update timestamp and then set the last
+        # check timestamp to now.
+        self._state.last_db_update = \
+            self._database_layer.get_config_item_last_update()
+        if not self._state.last_db_update:
+            return False
+
+        self._state.last_db_update_check = int(time())
+
+        # Get library hash and update last library check to now.
+        self._state.last_library_hash = \
+            self._database_layer.get_config_item_library_hash()
+        if not self._state.last_library_hash:
+            return False
+
+        self._state.last_library_check = int(time())
 
         return True
+
+    def _register_events(self) -> None:
+        self._logger.info("Registering 'RefreshConfiguration' event handler")
+        GathererEventHandler().register_event(
+            EventType.REFRESHCONFIGURATION,
+            self._gather_process.config_refresh_event_handler)
+
+        self._logger.info("Registering 'RefreshLibrary' event handler")
+        GathererEventHandler().register_event(
+            EventType.REFRESHLIBRARY,
+            self._gather_process.library_refresh_event_handler)
+
+    def _check_for_config_updates(self) -> None:
+        now : int = int(time())
+        check_time : int = self._state.last_db_update_check + \
+              int(self._config.get_entry("general",
+                                         "config_check_interval"))
+
+        if now >= check_time:
+            timestamp : int = self._database_layer.get_config_item_last_update()
+            if timestamp != self._state.last_db_update:
+                self._logger.info(
+                    "1 or more config items changing, scheduling refresh")
+                self._state.config_refresh_event_timestamp = now + \
+                    (1 * ONE_MINUTE_SECONDS)
+                self._state.last_db_update = timestamp
+
+            self._state.last_db_update_check = now
+
+        if self._state.config_refresh_event_timestamp and \
+           now >= self._state.config_refresh_event_timestamp:
+            self._logger.info("Scheduled dynamic config refresh event added")
+
+            GathererEventHandler().queue_event(
+                Event(EventType.REFRESHCONFIGURATION))
+            self._state.config_refresh_event_timestamp = 0
+
+    def _check_for_library_updates(self) -> None:
+        now : int = int(time())
+        check_time : int = self._state.last_library_check + \
+              int(self._config.get_entry("general",
+                                         "config_check_interval"))
+
+        if now >= check_time:
+            lib_hash : str = self._database_layer.get_config_item_library_hash()
+            if not lib_hash:
+                return
+
+            if lib_hash != self._state.last_library_hash:
+                self._logger.info(
+                    "Library has changed, refresh event triggered")
+                GathererEventHandler().queue_event(
+                    Event(EventType.REFRESHLIBRARY))
+                self._state.last_library_hash = lib_hash
+                self._state.last_library_check = now
