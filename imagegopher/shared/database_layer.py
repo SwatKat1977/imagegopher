@@ -257,3 +257,5 @@ class DatabaseLayer:
             self._logger.error(
                 f"Update 'library_hash' config option failed, reason: {ex}!")
             return False
+
+        return True
