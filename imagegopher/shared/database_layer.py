@@ -19,6 +19,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 from dataclasses import dataclass
 from enum import Enum
+import hashlib
 import logging
 import sqlite3
 from time import time
@@ -78,6 +79,7 @@ class DatabaseLayer:
             self._logger.error(f"SQL insert statement failed, reason: {ex}!")
             return False
 
+        self._update_config_item_library_hash()
         return True
 
     def get_config_item_scan_interval(self) -> int | None:
@@ -125,21 +127,6 @@ class DatabaseLayer:
 
         return int(results[0][0])
 
-    def update_config_item_library_hash(self, new_hash : str) -> bool:
-        ''' Update the configuration item 'Library Hash' '''
-
-        sql : str = 'UPDATE config_item set value=? WHERE key="library_hash"'
-
-        try:
-            self._sql_update(sql, (new_hash,))
-
-        except ValueError as ex:
-            self._logger.error(
-                f"Update 'library_hash' config option failed, reason: {ex}!")
-            return False
-
-        return True
-
     def get_config_item_library_hash(self) -> str | None:
         ''' Get the configuration item 'library hash' '''
 
@@ -169,7 +156,6 @@ class DatabaseLayer:
             paths.append(entry)
 
         return paths
-
 
     def verify_file_state(self, base_path_id : int, file : str,
                           file_hash : str) -> FileMatchState:
@@ -255,3 +241,19 @@ class DatabaseLayer:
             return False
 
         return True
+
+    def _update_config_item_library_hash(self) -> bool:
+        ''' Update the configuration item 'Library Hash' '''
+
+        now : str = str(int(time()))
+        new_hash : str = hashlib.sha256(now.encode('utf-8')).hexdigest()
+
+        sql : str = 'UPDATE config_item set value=? WHERE key="library_hash"'
+
+        try:
+            self._sql_update(sql, (new_hash,))
+
+        except ValueError as ex:
+            self._logger.error(
+                f"Update 'library_hash' config option failed, reason: {ex}!")
+            return False
