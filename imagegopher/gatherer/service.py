@@ -25,13 +25,13 @@ from time import time
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
 from event_type import EventType
-from shared.database_layer import DatabaseLayer
-from shared.events.event import Event
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
 from views.configuration_view import create_configuration_blueprint
 from views.health_view import create_health_blueprint
 from shared.configuration.configuration import Configuration
+from shared.database_layer import DatabaseLayer
+from shared.events.event import Event
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
