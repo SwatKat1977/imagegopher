@@ -95,11 +95,14 @@ class DatabaseBuilder:
            return False
 
         if not self._insert_entry(sql_config_item_insert,
-                                  ("last_update", "0",
+                                  ("last_update", "10",
                                    CONFIG_ITEM_TYPE_INT)) or \
            not self._insert_entry(sql_config_item_insert,
                                   ("scan_interval", "60",
-                                   CONFIG_ITEM_TYPE_UNSIGNED_INT)):
+                                   CONFIG_ITEM_TYPE_UNSIGNED_INT)) or \
+           not self._insert_entry(sql_config_item_insert,
+                                  ("library_hash", "||INVALID||",
+                                   CONFIG_ITEM_TYPE_STRING)):
             return False
 
         return True
