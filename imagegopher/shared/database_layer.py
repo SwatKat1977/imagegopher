@@ -63,7 +63,7 @@ class DatabaseLayer:
             return False
 
         raw_results : list = result.fetchall()
-        return True if raw_results else False
+        return len(raw_results) > 0
 
     def add_base_path(self, base_path : str) -> bool:
         ''' Add new base path to the database '''
