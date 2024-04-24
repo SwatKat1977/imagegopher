@@ -94,16 +94,6 @@ class DatabaseLayer:
             return None
 
         return int(results[0][0])
-        return 20000 # int(results[1])
-        try:
-            self._sql_update(sql, (interval,))
-
-        except ValueError as ex:
-            self._logger.error(
-                f"Update 'scan_interval' config option failed, reason: {ex}!")
-            return False
-
-        return self._update_last_update()
 
     def update_config_item_scan_interval(self, interval : int) -> bool:
         ''' Update the configuration item 'Scan Interval '''
@@ -119,6 +109,21 @@ class DatabaseLayer:
             return False
 
         return self._update_last_update()
+
+    def get_config_item_last_update(self) -> int | None:
+        ''' Get the configuration item 'last update '''
+
+        cursor = self._db_connection.cursor()
+        sql : str = 'SELECT value FROM config_item WHERE key="last_update"'
+
+        result = cursor.execute(sql)
+        results : list = result.fetchall()
+
+        if not results:
+            self._logger.error("Cannot get 'last_update' config option")
+            return None
+
+        return int(results[0][0])
 
     def get_base_paths(self) -> list:
         ''' Get all of the base paths from the database '''
