@@ -48,7 +48,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"path\" : \"/invalid/path01\"\n}",
+									"raw": "{\n    \"path\" : \"/Users/development/Downloads/test_imgs44\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
