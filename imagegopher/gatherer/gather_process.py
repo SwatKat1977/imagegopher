@@ -43,10 +43,7 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._logger = logger
         self._refresh_config : bool = False
 
-        self._scan_interval : int = \
-            self._db_layer.get_config_item_scan_interval()
-        self._logger.info("Scan interval time (seconds) : %d",
-                          self._scan_interval)
+        self._get_config_items_from_database()
 
         self._base_paths = self._cache_base_paths_from_database()
         self._base_paths.sort()
@@ -61,6 +58,10 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         interval : int = self._scan_interval * ONE_MINUTE_IN_SECONDS
         start_time : float = time()
         process_now : bool = False
+
+        if self._refresh_config:
+            self._get_config_items_from_database()
+            self._refresh_config = False
 
         if self._last_process_time == 0:
             self._logger.info("First time execution of file gathering...")
@@ -131,3 +132,9 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._logger.info("entries base paths entries cached: %d", len(base_paths))
 
         return base_paths
+
+    def _get_config_items_from_database(self) -> None:
+        self._scan_interval : int = \
+            self._db_layer.get_config_item_scan_interval()
+        self._logger.info("Scan interval time (seconds) : %d",
+                          self._scan_interval)
