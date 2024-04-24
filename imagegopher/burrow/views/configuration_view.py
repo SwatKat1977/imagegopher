@@ -24,7 +24,7 @@ import mimetypes
 from quart import Blueprint, request, Response
 from shared.api_view import ApiView
 from shared.api_response import ApiResponse
-from database_layer import DatabaseLayer
+from shared.database_layer import DatabaseLayer
 from views.configuration_view_schemas import SCHEMA_REQUEST_VALIDBASEPATH, \
                                              SCHEMA_REQUEST_ADDBASEPATH, \
                                              SCHEMA_REQUEST_SETSCANINTERVAL
