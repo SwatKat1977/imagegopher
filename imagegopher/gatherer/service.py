@@ -17,9 +17,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+from dataclasses import dataclass
 import logging
 import os
 import sqlite3
+from time import time
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
 from shared.database_layer import DatabaseLayer
@@ -31,10 +33,24 @@ from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
 
+ONE_MINUTE_SECONDS : int = 60
+
+@dataclass(init=False)
+class GathererState:
+    """ Class for keeping track of gatherer state. """
+
+    # Last time the configuration was updated (from database).
+    last_db_update: int = 0
+
+    # Timestamp that the database was cheched for updates.
+    last_db_update_check : int = 0
+
+    trigger_refresh_timestamp : int = 0
+
 class Service(Microservice):
     """ Gopher Service microservice """
     __slots__ = ["_config", "_database_layer", "_db_connection",
-                 "_gather_process", "_quart"]
+                 "_gather_process", "_quart", "_state"]
 
     def __init__(self, quart_instance) -> None:
         super().__init__()
@@ -43,6 +59,7 @@ class Service(Microservice):
         self._database_layer : sqlite3.Connection = None
         self._db_connection : sqlite3.Connection = None
         self._gather_process : GatherProcess = None
+        self._state : GathererState = GathererState()
 
         self._logger = logging.getLogger(__name__)
         log_format= logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
@@ -112,6 +129,28 @@ class Service(Microservice):
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
+
+        now : int = int(time())
+        check_time : int = self._state.last_db_update_check + \
+              int(self._config.get_entry("general",
+                                         "config_check_interval"))
+
+        if now >= check_time:
+            timestamp : int = self._database_layer.get_config_item_last_update()
+            if timestamp != self._state.last_db_update:
+                self._logger.info(
+                    "1 or more config items changing, scheduling refresh")
+                self._state.trigger_refresh_timestamp = now + \
+                    (1 * ONE_MINUTE_SECONDS)
+                self._state.last_db_update = timestamp
+
+            self._state.last_db_update_check = now
+
+        if self._state.trigger_refresh_timestamp and \
+           now >= self._state.trigger_refresh_timestamp:
+            self._logger.info("Scheduled dynamic config refresh event added")
+            self._state.trigger_refresh_timestamp = 0
+
         GathererEventHandler().process_next_event()
 
         self._gather_process.process_files()
@@ -154,5 +193,12 @@ class Service(Microservice):
         self._logger.info("Database connected...")
 
         self._database_layer = DatabaseLayer(self._logger, self._db_connection)
+
+        self._state.last_db_update = \
+            self._database_layer.get_config_item_last_update()
+        if not self._state.last_db_update:
+            return False
+
+        self._state.last_db_update_check = int(time())
 
         return True
