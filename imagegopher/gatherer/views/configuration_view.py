@@ -17,8 +17,24 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-from enum import auto, Enum
+from http import HTTPStatus
+from quart import Blueprint, request, Response
+from shared.api_view import ApiView
 
-class EventType(Enum):
-    RefreshConfiguration = auto()
-    RefreshLibrary = auto()
+def create_configuration_blueprint():
+    view = View()
+
+    blueprint = Blueprint('configuration_api', __name__)
+
+    @blueprint.route('/configuration/notify_libraries_updated', methods=['POST'])
+    async def notify_libraries_updated_request():
+        return await view.notify_libraries_updated_handler()
+
+    return blueprint
+
+class View(ApiView):
+    ''' View container class. '''
+
+    async def notify_libraries_updated_handler(self):
+        print("notify_libraries_updated_handler()")
+        return Response("OK", status = HTTPStatus.OK)

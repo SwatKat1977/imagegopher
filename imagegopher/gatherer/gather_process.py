@@ -32,7 +32,7 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
     ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
                  "_last_process_time", "_logger", "_refresh_config",
-                 "_scan_interval"]
+                 "_refresh_library", "_scan_interval"]
 
     def __init__(self, db_layer : DatabaseLayer,
                  logger : logging.Logger, config : Configuration) -> None:
@@ -42,6 +42,7 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._last_process_time : float = 0
         self._logger = logger
         self._refresh_config : bool = False
+        self._refresh_library : bool = False
 
         self._get_config_items_from_database()
 
@@ -62,6 +63,18 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         if self._refresh_config:
             self._get_config_items_from_database()
             self._refresh_config = False
+
+        if self._refresh_library:
+            self._base_paths = self._cache_base_paths_from_database()
+            self._base_paths.sort()
+
+            # Generate file gatherer per base path.
+            self._gatherers.clear()
+            for path_entry in self._base_paths:
+                gatherer = FileGatherer(self._logger, path_entry.path)
+                self._gatherers.append(gatherer)
+
+            self._refresh_library = False
 
         if self._last_process_time == 0:
             self._logger.info("First time execution of file gathering...")
@@ -122,8 +135,11 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         # we don't know how long processing takes.
         self._last_process_time = time()
 
-    def db_refresh_event_handler(self, _ : Event):
+    def config_refresh_event_handler(self, _ : Event):
         self._refresh_config = True
+
+    def library_refresh_event_handler(self, _ : Event):
+        self._refresh_library = True
 
     def _cache_base_paths_from_database(self) -> List[BasePathEntry]:
         self._logger.info("Caching base paths from database...")

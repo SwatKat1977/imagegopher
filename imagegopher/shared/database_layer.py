@@ -81,7 +81,7 @@ class DatabaseLayer:
         return True
 
     def get_config_item_scan_interval(self) -> int | None:
-        ''' Get the configuration item 'Scan Interval '''
+        ''' Get the configuration item 'Scan Interval' '''
 
         cursor = self._db_connection.cursor()
         sql : str = 'SELECT value FROM config_item WHERE key="scan_interval"'
@@ -96,7 +96,7 @@ class DatabaseLayer:
         return int(results[0][0])
 
     def update_config_item_scan_interval(self, interval : int) -> bool:
-        ''' Update the configuration item 'Scan Interval '''
+        ''' Update the configuration item 'Scan Interval' '''
 
         sql : str = 'UPDATE config_item set value=? WHERE key="scan_interval"'
 
@@ -111,7 +111,7 @@ class DatabaseLayer:
         return self._update_last_update()
 
     def get_config_item_last_update(self) -> int | None:
-        ''' Get the configuration item 'last update '''
+        ''' Get the configuration item 'last update' '''
 
         cursor = self._db_connection.cursor()
         sql : str = 'SELECT value FROM config_item WHERE key="last_update"'
@@ -124,6 +124,34 @@ class DatabaseLayer:
             return None
 
         return int(results[0][0])
+
+    def update_config_item_library_hash(self, new_hash : str) -> bool:
+        ''' Update the configuration item 'Library Hash' '''
+
+        sql : str = 'UPDATE config_item set value=? WHERE key="library_hash"'
+
+        try:
+            self._sql_update(sql, (new_hash,))
+
+        except ValueError as ex:
+            self._logger.error(
+                f"Update 'library_hash' config option failed, reason: {ex}!")
+            return False
+
+    def get_config_item_library_hash(self) -> str | None:
+        ''' Get the configuration item 'library hash' '''
+
+        cursor = self._db_connection.cursor()
+        sql : str = 'SELECT value FROM config_item WHERE key="library_hash"'
+
+        result = cursor.execute(sql)
+        results : list = result.fetchall()
+
+        if not results:
+            self._logger.error("Cannot get 'library_hash' config option")
+            return None
+
+        return results[0][0]
 
     def get_base_paths(self) -> list:
         ''' Get all of the base paths from the database '''

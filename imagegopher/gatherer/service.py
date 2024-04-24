@@ -29,6 +29,7 @@ from shared.database_layer import DatabaseLayer
 from shared.events.event import Event
 from gather_process import GatherProcess
 from gatherer_event_handler import GathererEventHandler
+from views.configuration_view import create_configuration_blueprint
 from views.health_view import create_health_blueprint
 from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
@@ -47,7 +48,14 @@ class GathererState:
     # Timestamp that the database was cheched for updates.
     last_db_update_check : int = 0
 
-    trigger_refresh_timestamp : int = 0
+    # Timestamp when to trigger a configuration refresh event.
+    config_refresh_event_timestamp : int = 0
+
+    # Last known library hash from the database.
+    last_library_hash : str = "<UNKNOWN>"
+
+    # Timestamp when library hash was last checked.
+    last_library_check : int= 0
 
 class Service(Microservice):
     """ Gopher Service microservice """
@@ -125,6 +133,10 @@ class Service(Microservice):
 
         self._register_events()
 
+        self._logger.info("Registering configuration endpoints...")
+        config_blueprint = create_configuration_blueprint()
+        self._quart.register_blueprint(config_blueprint)
+
         self._logger.info("Registering health endpoints...")
         health_blueprint = create_health_blueprint()
         self._quart.register_blueprint(health_blueprint)
@@ -134,29 +146,9 @@ class Service(Microservice):
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
 
-        now : int = int(time())
-        check_time : int = self._state.last_db_update_check + \
-              int(self._config.get_entry("general",
-                                         "config_check_interval"))
+        self._check_for_config_updates()
 
-        if now >= check_time:
-            timestamp : int = self._database_layer.get_config_item_last_update()
-            if timestamp != self._state.last_db_update:
-                self._logger.info(
-                    "1 or more config items changing, scheduling refresh")
-                self._state.trigger_refresh_timestamp = now + \
-                    (1 * ONE_MINUTE_SECONDS)
-                self._state.last_db_update = timestamp
-
-            self._state.last_db_update_check = now
-
-        if self._state.trigger_refresh_timestamp and \
-           now >= self._state.trigger_refresh_timestamp:
-            self._logger.info("Scheduled dynamic config refresh event added")
-
-            GathererEventHandler().queue_event(
-                Event(EventType.RefreshConfiguration))
-            self._state.trigger_refresh_timestamp = 0
+        self._check_for_library_updates()
 
         GathererEventHandler().process_next_event()
 
@@ -201,6 +193,8 @@ class Service(Microservice):
 
         self._database_layer = DatabaseLayer(self._logger, self._db_connection)
 
+        # Get the last configuration update timestamp and then set the last
+        # check timestamp to now.
         self._state.last_db_update = \
             self._database_layer.get_config_item_last_update()
         if not self._state.last_db_update:
@@ -208,11 +202,67 @@ class Service(Microservice):
 
         self._state.last_db_update_check = int(time())
 
+        # Get library hash and update last library check to now.
+        self._state.last_library_hash = \
+            self._database_layer.get_config_item_library_hash()
+        if not self._state.last_library_hash:
+            return False
+
+        self._state.last_library_check = int(time())
+
         return True
 
     def _register_events(self) -> None:
          self._logger.info("Registering 'RefreshConfiguration' event handler")
          GathererEventHandler().register_event(
              EventType.RefreshConfiguration,
-             self._gather_process.db_refresh_event_handler)
+             self._gather_process.config_refresh_event_handler)
 
+         self._logger.info("Registering 'RefreshLibrary' event handler")
+         GathererEventHandler().register_event(
+             EventType.RefreshLibrary,
+             self._gather_process.library_refresh_event_handler)
+
+    def _check_for_config_updates(self) -> None:
+        now : int = int(time())
+        check_time : int = self._state.last_db_update_check + \
+              int(self._config.get_entry("general",
+                                         "config_check_interval"))
+
+        if now >= check_time:
+            timestamp : int = self._database_layer.get_config_item_last_update()
+            if timestamp != self._state.last_db_update:
+                self._logger.info(
+                    "1 or more config items changing, scheduling refresh")
+                self._state.config_refresh_event_timestamp = now + \
+                    (1 * ONE_MINUTE_SECONDS)
+                self._state.last_db_update = timestamp
+
+            self._state.last_db_update_check = now
+
+        if self._state.config_refresh_event_timestamp and \
+           now >= self._state.config_refresh_event_timestamp:
+            self._logger.info("Scheduled dynamic config refresh event added")
+
+            GathererEventHandler().queue_event(
+                Event(EventType.RefreshConfiguration))
+            self._state.config_refresh_event_timestamp = 0
+
+    def _check_for_library_updates(self) -> None:
+        now : int = int(time())
+        check_time : int = self._state.last_library_check + \
+              int(self._config.get_entry("general",
+                                         "config_check_interval"))
+
+        if now >= check_time:
+            lib_hash : str = self._database_layer.get_config_item_library_hash()
+            if not lib_hash:
+                return
+
+            if lib_hash != self._state.last_library_hash:
+                self._logger.info(
+                    "Library has changed, refresh event triggered")
+                GathererEventHandler().queue_event(
+                    Event(EventType.RefreshLibrary))
+                self._state.last_library_hash = lib_hash
+                self._state.last_library_check = now
