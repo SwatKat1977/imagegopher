@@ -213,15 +213,15 @@ class Service(Microservice):
         return True
 
     def _register_events(self) -> None:
-         self._logger.info("Registering 'RefreshConfiguration' event handler")
-         GathererEventHandler().register_event(
-             EventType.RefreshConfiguration,
-             self._gather_process.config_refresh_event_handler)
+        self._logger.info("Registering 'RefreshConfiguration' event handler")
+        GathererEventHandler().register_event(
+            EventType.REFRESHCONFIGURATION,
+            self._gather_process.config_refresh_event_handler)
 
-         self._logger.info("Registering 'RefreshLibrary' event handler")
-         GathererEventHandler().register_event(
-             EventType.RefreshLibrary,
-             self._gather_process.library_refresh_event_handler)
+        self._logger.info("Registering 'RefreshLibrary' event handler")
+        GathererEventHandler().register_event(
+            EventType.REFRESHLIBRARY,
+            self._gather_process.library_refresh_event_handler)
 
     def _check_for_config_updates(self) -> None:
         now : int = int(time())
@@ -245,7 +245,7 @@ class Service(Microservice):
             self._logger.info("Scheduled dynamic config refresh event added")
 
             GathererEventHandler().queue_event(
-                Event(EventType.RefreshConfiguration))
+                Event(EventType.REFRESHCONFIGURATION))
             self._state.config_refresh_event_timestamp = 0
 
     def _check_for_library_updates(self) -> None:
@@ -263,6 +263,6 @@ class Service(Microservice):
                 self._logger.info(
                     "Library has changed, refresh event triggered")
                 GathererEventHandler().queue_event(
-                    Event(EventType.RefreshLibrary))
+                    Event(EventType.REFRESHLIBRARY))
                 self._state.last_library_hash = lib_hash
                 self._state.last_library_check = now

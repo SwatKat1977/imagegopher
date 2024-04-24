@@ -21,14 +21,17 @@ import logging
 import os
 from time import time
 from typing import List
-from shared.database_layer import BasePathEntry, DatabaseLayer, FileMatchState
 from file_gatherer import FileGatherer
 from shared.configuration.configuration import Configuration
+from shared.database_layer import BasePathEntry, DatabaseLayer, FileMatchState
 from shared.events.event import Event
 
 ONE_MINUTE_IN_SECONDS : int = 60
 
-class GatherProcess:    # pylint: disable=too-few-public-methods
+class GatherProcess:
+    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-instance-attributes
     ''' Class for the file gathering functionality '''
     __slots__ = ["_base_paths", "_config", "_db_layer", "_gatherers",
                  "_last_process_time", "_logger", "_refresh_config",
@@ -136,9 +139,11 @@ class GatherProcess:    # pylint: disable=too-few-public-methods
         self._last_process_time = time()
 
     def config_refresh_event_handler(self, _ : Event):
+        """ Configuration refresh event handler. """
         self._refresh_config = True
 
     def library_refresh_event_handler(self, _ : Event):
+        """ Library refresh event handler. """
         self._refresh_library = True
 
     def _cache_base_paths_from_database(self) -> List[BasePathEntry]:

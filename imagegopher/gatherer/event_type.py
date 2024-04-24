@@ -20,5 +20,6 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 from enum import auto, Enum
 
 class EventType(Enum):
-    RefreshConfiguration = auto()
-    RefreshLibrary = auto()
+    ''' Types of Gatherer events. '''
+    REFRESHCONFIGURATION = auto()
+    REFRESHLIBRARY = auto()
