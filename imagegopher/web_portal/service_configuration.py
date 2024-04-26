@@ -17,14 +17,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-from shared.configuration import configuration_setup
+from shared.configuration.configuration import Configuration
+from shared.singleton import Singleton
 
-CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
-    {
-        "logging": [
-            configuration_setup.ConfigurationSetupItem(
-                "log_level", configuration_setup.ConfigItemDataType.STRING,
-                valid_values=['DEBUG', 'INFO'], default_value="INFO")
-        ]
-    }
-)
+class ServiceConfiguration(Configuration, metaclass = Singleton):
+    """ Singleton for the config """
+
+    @property
+    def logging_log_level(self) -> str:
+        """ Configuration property : Logging | log level """
+        return ServiceConfiguration().get_entry("logging", "log_level")

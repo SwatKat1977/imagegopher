@@ -18,7 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
+import os
 import quart
+from configuration_layout import CONFIGURATION_LAYOUT
+from service_configuration import ServiceConfiguration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
@@ -59,7 +62,42 @@ class Service(Microservice):
                           version_str)
         self._logger.info("Copyright 2024 Image Gopher Development Team")
 
+        if not self._manage_configuration():
+            return False
+
         return True
 
     async def _main_loop(self) -> None:
         ''' Main microservice loop. '''
+
+    def _manage_configuration(self) -> bool:
+        config_file = os.getenv("GOPHER_WEB_PORTAL_CONFIG", None)
+        config_file_required : bool = os.getenv(
+            "GOPHER_GATHERER_CONFIG_REQUIRED", None)
+        config_file_required = False if not config_file_required \
+                               else config_file_required
+
+        if not config_file and config_file_required:
+            print("[FATAL ERROR] Configuration file missing!")
+            return False
+
+        ServiceConfiguration().configure(CONFIGURATION_LAYOUT,
+                                        config_file,
+                                        config_file_required)
+
+        try:
+            ServiceConfiguration().process_config()
+
+        except ValueError as ex:
+            self._logger.critical("Configuration error : %s", ex)
+            return False
+
+        self._logger.setLevel(ServiceConfiguration().logging_log_level)
+
+        self._logger.info("Configuration")
+        self._logger.info("=============")
+        self._logger.info("[logging]")
+        self._logger.info("=> Logging log level          : %s",
+                          ServiceConfiguration().logging_log_level)
+
+        return True
