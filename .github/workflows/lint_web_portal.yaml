@@ -1,0 +1,28 @@
+name: Lint Web Portal Microservice
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the development branch
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.11
+    - name: Install Requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install --no-cache-dir -r docker/requirements_lint_web_portal.txt
+    - name: Run Pylint
+      run: |
+        cd imagegopher
+        export PYTHONPATH=`pwd`/web_portal:`pwd`/shared
+        sh ../.github/workflows/lint.sh web_portal
