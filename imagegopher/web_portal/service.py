@@ -25,6 +25,7 @@ from service_configuration import ServiceConfiguration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
+from views.home import create_home_blueprint
 
 class Service(Microservice):
     """ Image Gopher Web Portal microservice """
@@ -65,6 +66,8 @@ class Service(Microservice):
         if not self._manage_configuration():
             return False
 
+        self._add_endpoints()
+
         return True
 
     async def _main_loop(self) -> None:
@@ -101,3 +104,7 @@ class Service(Microservice):
                           ServiceConfiguration().logging_log_level)
 
         return True
+
+    def _add_endpoints(self) -> None:
+        self._logger.info("Registering home endpoints...")
+        self._quart.register_blueprint(create_home_blueprint(self._logger))
