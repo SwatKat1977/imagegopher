@@ -24,8 +24,9 @@
 
 <body {% block body_params %}{% endblock %}>
 <div class="main-container d-flex">
+    <div class="row vh-100 overflow-auto">
     {% block navbar %}{% endblock %}
-    <div class="content">
+
     {% block page_contents %}{% endblock %}
     {% block footer %}{% endblock %}
     </div>
