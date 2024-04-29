@@ -3,5 +3,5 @@
 
 {% block page_contents %}
 {{ super() }}
-        <H2>This is a placeholder page...</H2>
+        <H2>This is a placeholder for the library page...</H2>
 {% endblock %}
