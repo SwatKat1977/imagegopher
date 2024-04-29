@@ -1,7 +1,7 @@
-<html>
-<title>Image Gopher : Library [PLACEHOLDER]</title>
+{% extends "site_default.template" %}
+{% block title %}Image Gopher | Library{% endblock %}
 
-<body>
-</body>
-<H2>This is a placeholder page...</H2>
-</html>
+{% block page_contents %}
+{{ super() }}
+        <H2>This is a placeholder page...</H2>
+{% endblock %}

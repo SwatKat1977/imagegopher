@@ -1,0 +1,22 @@
+{% extends "bootstrap_enabled.template" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='site_template.css') }}">
+{% endblock %}
+
+{% block body_params %}{{ super() }}{% endblock %}
+
+<div class="container-fluid overflow-hidden">
+    <div class="row vh-100 overflow-auto">
+        
+{% block navbar %}
+
+{% endblock %}
+
+    <div class="col d-flex flex-column h-sm-100">
+
+{% block page_contents %}{{ super() }}{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+{% endblock %}

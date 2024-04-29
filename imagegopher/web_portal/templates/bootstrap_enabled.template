@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 
@@ -24,9 +23,13 @@
 </head>
 
 <body {% block body_params %}{% endblock %}>
+<div class="main-container d-flex">
     {% block navbar %}{% endblock %}
+    <div class="content">
     {% block page_contents %}{% endblock %}
     {% block footer %}{% endblock %}
+    </div>
+</div>
 
     <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
