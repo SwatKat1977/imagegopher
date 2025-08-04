@@ -43,8 +43,8 @@ class ImageGatherer:
         """
         return self._document_root
 
-    def gather_images(self,
-                      shutdown_event: asyncio.Event | None = None) -> dict:
+    async def gather(self,
+                     shutdown_event: asyncio.Event | None = None) -> dict:
         """
         Walk the document root and create a dictionary of any file that is a
         valid image file, along with its name generate a hash.
@@ -60,6 +60,9 @@ class ImageGatherer:
             if shutdown_event and shutdown_event.is_set():
                 self._logger.info("Shutdown requested during directory scan.")
                 break
+
+            # yield to the event loop to stay responsive
+            await asyncio.sleep(0)
 
             images_list[subdir] = []
 

@@ -20,6 +20,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 from abc import ABC, abstractmethod
 import asyncio
 import logging
+import typing
 
 
 class Microservice(ABC):
@@ -27,11 +28,31 @@ class Microservice(ABC):
     __slots__ = ["_is_initialised", "_logger", "_shutdown_complete",
                  "_shutdown_event"]
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self):
         self._is_initialised: bool = False
-        self._logger: logging.Logger = logger.getChild(__name__)
+        self._logger: typing.Optional[logging.Logger] = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._shutdown_complete: asyncio.Event = asyncio.Event()
+
+    @property
+    def logger(self) -> logging.Logger:
+        """
+        Property getter for logger instance.
+
+        returns:
+            Returns the logger instance.
+        """
+        return self._logger
+
+    @logger.setter
+    def logger(self, logger : logging.Logger) -> None:
+        """
+        Property setter for logger instance.
+
+        parameters:
+            logger (logging.Logger) : Logger instance.
+        """
+        self._logger = logger
 
     @property
     def shutdown_event(self) -> asyncio.Event:
@@ -77,13 +98,17 @@ class Microservice(ABC):
                 await self._main_loop()
                 await asyncio.sleep(0.1)
 
-        except (KeyboardInterrupt, asyncio.CancelledError):
-            self._logger.info("Cancellation or keyboard interrupt received.")
+        except KeyboardInterrupt:
+            self._logger.info("Keyboard interrupt received.")
             self._shutdown_event.set()
+
+        except asyncio.CancelledError:
+            self._logger.info("Cancellation received.")
+            raise
 
         finally:
             self._logger.info("Exiting microservice run loop...")
-            await self._shutdown_complete.wait()
+            await self.stop()
             self._logger.info("Shutdown complete.")
 
     async def stop(self) -> None:

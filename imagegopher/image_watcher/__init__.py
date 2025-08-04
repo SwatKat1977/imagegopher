@@ -17,12 +17,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+import asyncio
 import sys
 from quart import Quart
-#from service import Service
+from service import Service
+
 
 app = Quart(__name__)
-#SERVICE_APP = None
+
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+SERVICE_APP: Service = Service(app)
+if not SERVICE_APP.initialise():
+    sys.exit(1)
 
 
 @app.before_serving
@@ -30,7 +39,9 @@ async def startup() -> None:
     """
     Code executed before Quart has started serving http requests.
     """
-    #app.add_background_task(SERVICE_APP.run)
+    global background_task
+    background_task = asyncio.create_task(SERVICE_APP.run())
+    # app.add_background_task(SERVICE_APP.run)
 
 
 @app.after_serving
@@ -38,9 +49,10 @@ async def shutdown() -> None:
     """
     Code executed after Quart has stopped serving http requests.
     """
-    #SERVICE_APP.stop()
-
-
-#SERVICE_APP = Service(app)
-#if not SERVICE_APP.initialise():
-#    sys.exit()
+    SERVICE_APP.shutdown_event.set()
+    if background_task:
+        background_task.cancel()
+        try:
+            await background_task
+        except asyncio.CancelledError:
+            pass
