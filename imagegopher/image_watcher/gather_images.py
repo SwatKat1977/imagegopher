@@ -17,6 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+import asyncio
 import hashlib
 import logging
 import os
@@ -42,11 +43,8 @@ class ImageGatherer:
         """
         return self._document_root
 
-    @document_root.setter
-    def document_root(self, value : str):
-        self._document_root = value
-
-    def gather_images(self) -> dict:
+    def gather_images(self,
+                      shutdown_event: asyncio.Event | None = None) -> dict:
         """
         Walk the document root and create a dictionary of any file that is a
         valid image file, along with its name generate a hash.
@@ -59,6 +57,10 @@ class ImageGatherer:
         images_list = {}
 
         for subdir, _, files in os.walk(self._document_root):
+            if shutdown_event and shutdown_event.is_set():
+                self._logger.info("Shutdown requested during directory scan.")
+                break
+
             images_list[subdir] = []
 
             for file in files:
