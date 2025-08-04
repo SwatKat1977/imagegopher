@@ -98,7 +98,7 @@ class ImageGatherer:
         except (IOError, SyntaxError):
             return False
 
-    def _generate_file_hash(self, filename : str) -> str:
+    def _generate_file_hash(self, filename: str) -> str:
         """
         Generate an MD5 hash of the specified file.
 
@@ -122,7 +122,7 @@ class ImageGatherer:
 
         return md5_object.hexdigest()
 
-    def _is_file_readable(self, filename : str) -> bool:
+    def _is_file_readable(self, filename: str) -> bool:
         """
         Check if the specified file is readable and writable.
 
