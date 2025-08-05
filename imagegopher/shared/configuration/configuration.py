@@ -19,11 +19,13 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import configparser
 import os
+import typing
 from shared.configuration.configuration_setup import ConfigItemDataType, \
                                                      ConfigurationSetup, \
                                                      ConfigurationSetupItem
 
-class Configuration():
+
+class Configuration:
     """
     Class that wraps the functionality of configparser to support additional
     features such as trying multiple sources for the configuration item.
@@ -37,11 +39,11 @@ class Configuration():
         self._config_file : str = ''
         self._has_config_file = False
         self._config_file_required = False
-        self._layout : ConfigurationSetup = None
+        self._layout : typing.Optional[ConfigurationSetup] = None
         self._config_items = {}
 
-    def configure(self, layout : ConfigurationSetup,
-                 config_file : str = None, file_required : bool = False):
+    def configure(self, layout: ConfigurationSetup,
+                  config_file: str = None, file_required : bool = False):
         """
         Constructor for the configuration base class, it take in a layout
         class to validate the file.
@@ -62,6 +64,9 @@ class Configuration():
             file_required : Is the file required (optional, default = False)
             required_files : Dict of required item (optional, default = None)
         """
+        if layout is None:
+            raise ValueError("Configuration layout cannot be None.")
+
         self._config_file = config_file
         self._config_file_required = file_required
         self._layout = layout
@@ -71,7 +76,8 @@ class Configuration():
         Process the configuration
         """
 
-        files_read = []
+        if self._layout is None:
+            raise RuntimeError("Configuration layout must be set before processing.")
 
         if self._config_file:
             try:
@@ -85,7 +91,8 @@ class Configuration():
                 raise ValueError(
                     f"Failed to open required config file '{self._config_file}'")
 
-            self._has_config_file = True
+            if files_read:
+                self._has_config_file = True
 
         self._read_configuration()
 
@@ -181,7 +188,9 @@ class Configuration():
                              f"'{section}::{fmt.item_name}'")
 
         if fmt.valid_values and value not in fmt.valid_values:
-            raise ValueError(f"Value of '{value} for {fmt.item_name} is invalid")
+            raise ValueError(
+                f"Invalid value '{value}' for '{section}::{fmt.item_name}'. "
+                f"Expected one of {fmt.valid_values}.")
 
         return value
 
@@ -275,15 +284,19 @@ class Configuration():
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
-        if value.lower() in ["true", "1"]:
-            value : bool = True
-        elif value.lower() in ["false", "0"]:
-            value : bool = False
-        else:
-            raise ValueError((f"Configuration option '{fmt.item_name}' with "
-                              f"a value of '{value}' is not an bool."))
+        if isinstance(value, bool):
+            return value
 
-        return value
+        if isinstance(value, str):
+            value = value.lower()
+
+            if value in ["true", "1", "yes", "on"]:
+                return True
+            elif value in ["false", "0", "no", "off"]:
+                return False
+
+        raise ValueError((f"Configuration option '{fmt.item_name}' with "
+                          f"a value of '{value}' is not an bool."))
 
     def _read_float(self, section: str,
                     fmt: ConfigurationSetupItem) -> float:
