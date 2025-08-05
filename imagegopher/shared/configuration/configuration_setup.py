@@ -21,6 +21,7 @@ import enum
 import typing
 from dataclasses import dataclass
 
+
 class ConfigItemDataType(enum.Enum):
     """ Enumeration for configuration item data type """
     BOOLEAN = enum.auto()
@@ -28,6 +29,7 @@ class ConfigItemDataType(enum.Enum):
     INT = enum.auto()
     STRING = enum.auto()
     UNSIGNED_INT = enum.auto()
+
 
 @dataclass(frozen=True)
 class ConfigurationSetupItem:
