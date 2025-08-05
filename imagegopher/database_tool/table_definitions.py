@@ -21,7 +21,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 sql_create_base_path_table: str = """
     CREATE TABLE IF NOT EXISTS base_path (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        path TEXT PRIMARY KEY
+        path TEXT NOT NULL UNIQUE
     ); """
 
 sql_create_file_hash_table: str = """
