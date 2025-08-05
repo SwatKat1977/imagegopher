@@ -30,7 +30,7 @@ sql_create_file_hash_table: str = """
         filename TEXT NOT NULL,
         hash TEXT NOT NULL,
         PRIMARY KEY (base_path_id, filename),
-        FOREIGN KEY (base_path_id) REFERENCES base_path(rowid),
+        FOREIGN KEY (base_path_id) REFERENCES base_path(id),
         UNIQUE (base_path_id, filename)
     ); """
 
