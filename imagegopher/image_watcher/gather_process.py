@@ -29,7 +29,6 @@ ONE_MINUTE_IN_SECONDS : int = 60
 @dataclass
 class GatherProcessState:
     last_process_time: float = 0
-    refresh_config: bool = False
     refresh_cache: bool = False
 
 
