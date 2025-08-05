@@ -150,153 +150,108 @@ class Configuration:
 
                 self._config_items[section_name][section_item.item_name] = item_value
 
-    def _read_str(self, section : str, option : str,
-                 fmt : ConfigurationSetupItem) -> str:
+    def _read_str(self, section: str, option: str, fmt: ConfigurationSetupItem) -> str:
         """
-        Read a configuration option of type string, firstly it will check for
-        an environment variable (format is section_option), otherwise try the
-        configuration file (if it exists). An ValueError exception is thrown
-        it's missing and marked as is_required.
+        Read a configuration option of type str. Checks env var first, then config file.
+        If valid_values is set, ensures the result is one of them.
 
-        parameters:
-            section : Configuration section
-            option : Configuration option to read
-            default : Default value (if not a required variable)
-            is_required : Is a required env variable flag (default is False)
-
-        returns:
-            A str or None if it's not a required field.
+        Returns:
+            str value or raises ValueError if missing/invalid and required.
         """
-        env_variable : str = f"{section}_{option}".upper()
+        env_variable: str = f"{section}_{option}".upper()
         value = os.getenv(env_variable)
 
-        # If no environment variable is found, check config file (if exits)
-        if not value and self._has_config_file:
+        if value is None and self._has_config_file:
             try:
                 value = self._parser.get(section, option)
-
-            except configparser.NoOptionError:
-                value = None
-
-            except configparser.NoSectionError:
+            except (configparser.NoOptionError, configparser.NoSectionError):
                 value = None
 
         value = value if value else fmt.default_value
 
-        if not value and fmt.is_required:
-            raise ValueError("Missing required config option "
-                             f"'{section}::{fmt.item_name}'")
+        if value is None and fmt.is_required:
+            raise ValueError(f"Missing required config option '{section}::{fmt.item_name}'")
 
         if fmt.valid_values and value not in fmt.valid_values:
             raise ValueError(
                 f"Invalid value '{value}' for '{section}::{fmt.item_name}'. "
-                f"Expected one of {fmt.valid_values}.")
+                f"Expected one of {fmt.valid_values}."
+            )
 
         return value
 
-    def _read_int(self, section : str,
-                  fmt : ConfigurationSetupItem) -> int:
+    def _read_int(self, section: str, fmt: ConfigurationSetupItem) -> int:
         """
-        Read a configuration option of type int, firstly it will check for
-        an environment variable (format is section_option), otherwise try the
-        configuration file (if it exists). An ValueError exception is thrown
-        it's missing and marked as is_required or is not an int.
+        Read a configuration option of type int. Checks env var first, then
+        config file.
 
-        parameters:
-            section : Configuration section
-            option : Configuration option to read
-            default : Default value (if not a required variable)
-            is_required : Is a required env variable flag (default is False)
-
-        returns:
-            An int or None if it's not a required field.
+        Returns:
+            int value or raises ValueError if missing/invalid and required.
         """
-        env_variable : str = f"{section}_{fmt.item_name}".upper()
+        env_variable: str = f"{section}_{fmt.item_name}".upper()
         value = os.getenv(env_variable)
 
-        # If no environment variable is found, check config file (if exits)
         if value is None and self._has_config_file:
             try:
                 value = self._parser.getint(section, fmt.item_name)
-
-            except configparser.NoOptionError:
+            except (configparser.NoOptionError, configparser.NoSectionError):
                 value = None
-
-            except configparser.NoSectionError:
-                value = None
-
             except ValueError as ex:
-                raise ValueError(f"Config file option '{fmt.item_name}'"
-                                 " is not a valid int.") from ex
+                raise ValueError(
+                    f"Config file option '{fmt.item_name}' is not a valid int."
+                ) from ex
 
         value = value if value is not None else fmt.default_value
+
         if value is None and fmt.is_required:
-            raise ValueError("Missing required config option "
-                             f"'{section}::{fmt.item_name}'")
+            raise ValueError(
+                f"Missing required config option '{section}::{fmt.item_name}'")
 
         try:
-            value = int(value)
+            return int(value)
+        except (ValueError, TypeError) as ex:
+            raise ValueError(
+                f"Configuration option '{fmt.item_name}' with value '{value}' is not a valid int."
+            ) from ex
 
-        except ValueError as ex:
-            raise ValueError((f"Configuration option '{fmt.item_name}' with"
-                              f" a value of '{value}' is not an int.")) from ex
-
-        return value
-
-    def _read_bool(self, section: str,
-                   fmt: ConfigurationSetupItem) -> bool:
+    def _read_bool(self, section: str, fmt: ConfigurationSetupItem) -> bool:
         """
-        Read a configuration option of type bool, firstly it will check for
-        an environment variable (format is section_option), otherwise try the
-        configuration file (if it exists). An ValueError exception is thrown
-        it's missing and marked as is_required or is not an int.
-
-        parameters:
-            section : Configuration section
-            option : Configuration option to read
-            default : Default value (if not a required variable)
-            is_required : Is a required env variable flag (default is False)
-
-        returns:
-            A bool or None if it's not a required field.
+        Read a configuration option of type bool. Checks env var first, then config file.
+        Accepts common string bool values (true/false, yes/no, 1/0).
+        Returns:
+            bool value or raises ValueError if invalid and required.
         """
-        env_variable : str = f"{section}_{fmt.item_name}".upper()
+        env_variable: str = f"{section}_{fmt.item_name}".upper()
         value = os.getenv(env_variable)
 
-        # If no environment variable is found, check config file (if exits)
         if value is None and self._has_config_file:
             try:
                 value = self._parser.getboolean(section, fmt.item_name)
-
-            except configparser.NoOptionError:
+            except (configparser.NoOptionError, configparser.NoSectionError):
                 value = None
-
-            except configparser.NoSectionError:
-                value = None
-
             except ValueError as ex:
-                raise ValueError((f"Config file option '{fmt.item_name}'"
-                                   " is not a valid boolean.")) from ex
+                raise ValueError(
+                    f"Config file option '{fmt.item_name}' is not a valid boolean."
+                ) from ex
 
         value = value if value is not None else fmt.default_value
 
-        if not value and fmt.is_required:
-            raise ValueError("Missing required config option "
-                             f"'{section}::{fmt.item_name}'")
+        if value is None and fmt.is_required:
+            raise ValueError(f"Missing required config option '{section}::{fmt.item_name}'")
 
         if isinstance(value, bool):
             return value
 
         if isinstance(value, str):
-            value = value.lower()
-
-            if value in ["true", "1", "yes", "on"]:
+            lowered = value.strip().lower()
+            if lowered in ["true", "1", "yes", "on"]:
                 return True
-            elif value in ["false", "0", "no", "off"]:
+            elif lowered in ["false", "0", "no", "off"]:
                 return False
 
-        raise ValueError((f"Configuration option '{fmt.item_name}' with "
-                          f"a value of '{value}' is not an bool."))
+        raise ValueError(
+            f"Configuration option '{fmt.item_name}' with value '{value}' is not a valid boolean."
+        )
 
     def _read_float(self, section: str, fmt: ConfigurationSetupItem) -> float:
         """
@@ -374,6 +329,6 @@ class Configuration:
 
         if value < 0:
             raise ValueError((f"Configuration option '{fmt.item_name}' with a"
-                              f"value of '{value}' is not an unsigned int."))
+                              f" value of '{value}' is not an unsigned int."))
 
         return value
