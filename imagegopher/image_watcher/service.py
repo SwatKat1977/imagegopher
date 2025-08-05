@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
+import os
 import quart
 from microservice import Microservice
 from version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
@@ -53,13 +54,20 @@ class Service(Microservice):
         version_post: str = "" if VERSION_POST == "" \
                             else f"-{VERSION_POST}"
         version_str: str = (f"{VERSION_MAJOR}."
-                             f"{VERSION_MINOR}."
-                             f"{VERSION_BUGFIX}"
-                             f"{version_post}")
+                            f"{VERSION_MINOR}."
+                            f"{VERSION_BUGFIX}"
+                            f"{version_post}")
 
         self._logger.info("Image Gopher: Image Watcher Microservice V%s",
                           version_str)
         self._logger.info("Copyright 2025 Image Gopher Development Team")
+
+        config_file = os.getenv("GOPHER_GATHERER_CONFIG", None)
+        config_file_required: bool = os.getenv("GOPHER_GATHERER_CONFIG_REQUIRED",
+                                               "false").lower() == "true"
+        if not config_file and config_file_required:
+            print("[FATAL ERROR] Configuration file missing!")
+            return False
 
         return True
 
