@@ -33,9 +33,9 @@ CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
         ],
         "general": [
             configuration_setup.ConfigurationSetupItem(
-                "config_check_interval",
+                "directory_scan_interval",
                 configuration_setup.ConfigItemDataType.UNSIGNED_INT,
-                default_value="6000")
+                default_value="30")
         ]
     }
 )

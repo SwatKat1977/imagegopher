@@ -99,6 +99,8 @@ class Service(Microservice):
 
     async def _main_loop(self) -> None:
         """ Main microservice loop. """
+        # self._gather_process.process_files()
+
 
     async def _shutdown(self):
         """ Shutdown logic. """
@@ -107,12 +109,12 @@ class Service(Microservice):
         self._logger.info("Configuration")
         self._logger.info("=============")
         self._logger.info("[logging]")
-        self._logger.info("=> Logging log level               : %s",
+        self._logger.info("=> Logging log level              : %s",
                           self._config.get_entry("logging", "log_level"))
         self._logger.info("[database]")
-        self._logger.info("=> Filename                        : %s",
+        self._logger.info("=> Filename                       : %s",
                           self._config.get_entry("database", "filename"))
         self._logger.info("[general]")
-        self._logger.info("=> Config Check Interval (seconds) : %s",
+        self._logger.info("=> Directory scan interval (mins) : %s",
                           self._config.get_entry("general",
-                                                 "config_check_interval"))
+                                                 "directory_scan_interval"))
