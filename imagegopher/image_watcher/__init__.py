@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import asyncio
+import os
 import sys
 from quart import Quart
 from service import Service
@@ -29,8 +30,6 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 SERVICE_APP: Service = Service(app)
-if not SERVICE_APP.initialise():
-    sys.exit(1)
 
 
 @app.before_serving
@@ -38,6 +37,9 @@ async def startup() -> None:
     """
     Code executed before Quart has started serving http requests.
     """
+    if not await SERVICE_APP.initialise():
+        os._exit(1)
+
     app.background_task = asyncio.create_task(SERVICE_APP.run())
 
 
