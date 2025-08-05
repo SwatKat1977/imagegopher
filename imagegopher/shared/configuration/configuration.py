@@ -217,11 +217,11 @@ class Configuration():
                 value = None
 
             except ValueError as ex:
-                raise ValueError((f"Config file option '{fmt.item_name}'"
-                                   " is not a valid int.")) from ex
+                raise ValueError(f"Config file option '{fmt.item_name}'"
+                                 " is not a valid int.") from ex
 
         value = value if value is not None else fmt.default_value
-        if not value and fmt.is_required:
+        if value is None and fmt.is_required:
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
@@ -234,8 +234,8 @@ class Configuration():
 
         return value
 
-    def _read_bool(self, section : str,
-                  fmt : ConfigurationSetupItem) -> bool:
+    def _read_bool(self, section: str,
+                   fmt: ConfigurationSetupItem) -> bool:
         """
         Read a configuration option of type bool, firstly it will check for
         an environment variable (format is section_option), otherwise try the
@@ -271,7 +271,7 @@ class Configuration():
 
         value = value if value is not None else fmt.default_value
 
-        if value and fmt.is_required:
+        if not value and fmt.is_required:
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
@@ -285,8 +285,8 @@ class Configuration():
 
         return value
 
-    def _read_float(self, section : str,
-                    fmt : ConfigurationSetupItem) -> float:
+    def _read_float(self, section: str,
+                    fmt: ConfigurationSetupItem) -> float:
         """
         Read a configuration option of type float, firstly it will check for an
         environment variable (format is section_option), otherwise try the
@@ -318,11 +318,11 @@ class Configuration():
 
             except ValueError as ex:
                 raise ValueError((f"Config file option '{fmt.item_name}'"
-                                   " is not a valid float.")) from ex
+                                  " is not a valid float.")) from ex
 
         value = value if value is not None else fmt.default_value
 
-        if value and fmt.is_required:
+        if not value and fmt.is_required:
             raise ValueError("Missing required config option "
                              f"'{section}::{fmt.item_name}'")
 
