@@ -25,7 +25,6 @@ from service import Service
 
 app = Quart(__name__)
 
-
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -39,9 +38,7 @@ async def startup() -> None:
     """
     Code executed before Quart has started serving http requests.
     """
-    global background_task
-    background_task = asyncio.create_task(SERVICE_APP.run())
-    # app.add_background_task(SERVICE_APP.run)
+    app.background_task = asyncio.create_task(SERVICE_APP.run())
 
 
 @app.after_serving
@@ -50,9 +47,10 @@ async def shutdown() -> None:
     Code executed after Quart has stopped serving http requests.
     """
     SERVICE_APP.shutdown_event.set()
-    if background_task:
-        background_task.cancel()
+    task = getattr(app, "background_task", None)
+    if task:
+        task.cancel()
         try:
-            await background_task
+            await task
         except asyncio.CancelledError:
             pass
