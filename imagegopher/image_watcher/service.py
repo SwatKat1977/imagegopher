@@ -22,6 +22,7 @@ import os
 import typing
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
+from gather_process import GatherProcess
 from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
@@ -36,6 +37,7 @@ class Service(Microservice):
         self._quart: quart.Quart = quart_instance
 
         self._config: typing.Optional[Configuration] = None
+        self._gather_process: typing.Optional[GatherProcess] = None
 
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -67,9 +69,9 @@ class Service(Microservice):
                           version_str)
         self._logger.info("Copyright 2025 Image Gopher Development Team")
 
-        config_file = os.getenv("GOPHER_GATHERER_CONFIG", None)
+        config_file = os.getenv("IMAGE_GOPHER_WATCHER_CONFIG", None)
         config_file_required: bool = os.getenv(
-            "GOPHER_GATHERER_CONFIG_REQUIRED",
+            "IMAGE_GOPHER_WATCHER_CONFIG_REQUIRED",
             "false").lower() == "true"
         if not config_file and config_file_required:
             print("[FATAL ERROR] Configuration file missing!")
@@ -91,6 +93,8 @@ class Service(Microservice):
 
         self._display_configuration_details()
 
+        self._gather_process = GatherProcess(self._logger, self._config)
+
         return True
 
     async def _main_loop(self) -> None:
@@ -98,3 +102,17 @@ class Service(Microservice):
 
     async def _shutdown(self):
         """ Shutdown logic. """
+
+    def _display_configuration_details(self):
+        self._logger.info("Configuration")
+        self._logger.info("=============")
+        self._logger.info("[logging]")
+        self._logger.info("=> Logging log level               : %s",
+                          self._config.get_entry("logging", "log_level"))
+        self._logger.info("[database]")
+        self._logger.info("=> Filename                        : %s",
+                          self._config.get_entry("database", "filename"))
+        self._logger.info("[general]")
+        self._logger.info("=> Config Check Interval (seconds) : %s",
+                          self._config.get_entry("general",
+                                                 "config_check_interval"))
