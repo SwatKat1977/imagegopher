@@ -298,55 +298,57 @@ class Configuration:
         raise ValueError((f"Configuration option '{fmt.item_name}' with "
                           f"a value of '{value}' is not an bool."))
 
-    def _read_float(self, section: str,
-                    fmt: ConfigurationSetupItem) -> float:
+    def _read_float(self, section: str, fmt: ConfigurationSetupItem) -> float:
         """
-        Read a configuration option of type float, firstly it will check for an
-        environment variable (format is section_option), otherwise try the
-        configuration file (if it exists). An ValueError exception is thrown
-        it's missing and marked as is_required or is not an float.
+        Read a configuration option of type float. It checks for an environment
+        variable first (format is SECTION_OPTION), then the configuration file
+        if it exists. If missing and required, or invalid, raises ValueError.
 
-        parameters:
-            section : Configuration section
-            option : Configuration option to read
-            default : Default value (if not a required variable)
-            is_required : Is a required env variable flag (default is False)
+        Parameters:
+            section : Configuration section name
+            fmt     : ConfigurationSetupItem containing item_name,
+                      default_value, and is_required
 
-        returns:
-            An float or None if it's not a required field.
+        Returns:
+            float value of the configuration option
+
+        Raises:
+            ValueError if the value is required and missing, or not a valid
+            float
         """
-        env_variable : str = f"{section}_{fmt.item_name}".upper()
+        env_variable: str = f"{section}_{fmt.item_name}".upper()
         value = os.getenv(env_variable)
 
-        # If no environment variable is found, check config file (if exits)
+        # If no env var, check config file if it exists
         if value is None and self._has_config_file:
             try:
                 value = self._parser.getfloat(section, fmt.item_name)
-
-            except configparser.NoOptionError:
+            except (configparser.NoOptionError, configparser.NoSectionError):
                 value = None
-
-            except configparser.NoSectionError:
-                value = None
-
             except ValueError as ex:
-                raise ValueError((f"Config file option '{fmt.item_name}'"
-                                  " is not a valid float.")) from ex
+                raise ValueError(
+                    f"Config file option '{fmt.item_name}' is not a valid float."
+                ) from ex
 
+        # Use default if still not set
         value = value if value is not None else fmt.default_value
 
-        if not value and fmt.is_required:
-            raise ValueError("Missing required config option "
-                             f"'{section}::{fmt.item_name}'")
+        if value is None and fmt.is_required:
+            raise ValueError(
+                f"Missing required config option '{section}::{fmt.item_name}'"
+            )
 
+        # If already a float (e.g. from getfloat), return it
+        if isinstance(value, float):
+            return value
+
+        # If it's a string, try to convert to float
         try:
-            value = float(value)
-
-        except ValueError as ex:
-            raise ValueError((f"Configuration option '{fmt.item_name}' with a "
-                              f"value of '{value}' is not a float.")) from ex
-
-        return value
+            return float(value)
+        except (ValueError, TypeError) as ex:
+            raise ValueError(
+                f"Configuration option '{fmt.item_name}' with value '{value}' is not a valid float."
+            ) from ex
 
     def _read_uint(self, section : str,
                    fmt : ConfigurationSetupItem) -> int:
