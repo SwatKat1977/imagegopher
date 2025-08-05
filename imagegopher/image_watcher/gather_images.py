@@ -17,6 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+import asyncio
 import hashlib
 import logging
 import os
@@ -42,11 +43,8 @@ class ImageGatherer:
         """
         return self._document_root
 
-    @document_root.setter
-    def document_root(self, value : str):
-        self._document_root = value
-
-    def gather_images(self) -> dict:
+    async def gather(self,
+                     shutdown_event: asyncio.Event | None = None) -> dict:
         """
         Walk the document root and create a dictionary of any file that is a
         valid image file, along with its name generate a hash.
@@ -59,6 +57,13 @@ class ImageGatherer:
         images_list = {}
 
         for subdir, _, files in os.walk(self._document_root):
+            if shutdown_event and shutdown_event.is_set():
+                self._logger.info("Shutdown requested during directory scan.")
+                break
+
+            # yield to the event loop to stay responsive
+            await asyncio.sleep(0)
+
             images_list[subdir] = []
 
             for file in files:
@@ -96,7 +101,7 @@ class ImageGatherer:
         except (IOError, SyntaxError):
             return False
 
-    def _generate_file_hash(self, filename : str) -> str:
+    def _generate_file_hash(self, filename: str) -> str:
         """
         Generate an MD5 hash of the specified file.
 
@@ -120,7 +125,7 @@ class ImageGatherer:
 
         return md5_object.hexdigest()
 
-    def _is_file_readable(self, filename : str) -> bool:
+    def _is_file_readable(self, filename: str) -> bool:
         """
         Check if the specified file is readable and writable.
 
