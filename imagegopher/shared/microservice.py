@@ -56,10 +56,23 @@ class Microservice(ABC):
 
     @property
     def shutdown_event(self) -> asyncio.Event:
+        """
+        Event used to signal the shutdown of the service.
+
+        This event should be awaited or checked by background tasks to
+        gracefully stop operations when the application is shutting down.
+        """
         return self._shutdown_event
 
     @property
     def shutdown_complete(self) -> asyncio.Event:
+        """
+        Event that indicates the service has completed its shutdown process.
+
+        This should be set when all shutdown tasks and cleanup procedures have
+        finished, allowing other components (like the main app) to know when
+        it's safe to exit.
+        """
         return self._shutdown_complete
 
     def initialise(self) -> bool:
@@ -140,9 +153,7 @@ class Microservice(ABC):
     @abstractmethod
     async def _main_loop(self) -> None:
         """ Abstract method for main microservice loop. """
-        pass
 
     @abstractmethod
     async def _shutdown(self):
         """ Abstract method for microservice shutdown. """
-        pass

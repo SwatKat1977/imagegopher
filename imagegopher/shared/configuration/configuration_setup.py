@@ -43,9 +43,23 @@ class ConfigurationSetupItem:
 
 
 class ConfigurationSetup:
-    """ Class that defines the configuration Format """
+    """
+    Class that defines the configuration format.
+
+    This class holds the configuration layout by section, where each section
+    contains a list of `ConfigurationSetupItem` instances describing individual
+    configuration keys.
+    """
 
     def __init__(self, setup_items: dict) -> None:
+        """
+        Initialize the ConfigurationSetup.
+
+        Args:
+            setup_items: A dictionary mapping section names (str) to lists of
+                         ConfigurationSetupItem instances that define expected
+                         config items.
+        """
         self._items = setup_items
 
     def get_sections(self) -> list:
@@ -58,4 +72,14 @@ class ConfigurationSetup:
         return list(self._items.keys())
 
     def get_section(self, name: str) -> list[ConfigurationSetupItem]:
+        """
+        Get the list of configuration items for a given section.
+
+        Args:
+            name: The name of the section to retrieve items for.
+
+        Returns:
+            A list of ConfigurationSetupItem instances for the section.
+            Returns an empty list if the section is not found.
+        """
         return self._items.get(name, [])

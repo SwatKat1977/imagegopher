@@ -130,20 +130,28 @@ class Configuration:
                     item_value : int = self._read_int(section_name, section_item)
 
                 elif section_item.item_type == ConfigItemDataType.STRING:
-                    item_value : str = self._read_str(section_name,
+                    item_value: str = self._read_str(section_name,
                                                      section_item.item_name,
                                                      section_item)
 
                 elif section_item.item_type == ConfigItemDataType.BOOLEAN:
-                    item_value : bool = self._read_bool(section_name,
-                                                        section_item)
+                    item_value: bool = self._read_bool(section_name,
+                                                       section_item)
 
                 elif section_item.item_type == ConfigItemDataType.FLOAT:
-                    item_value : float = self._read_float(section_name,
-                                                        section_item)
+                    item_value: float = self._read_float(section_name,
+                                                         section_item)
+
                 elif section_item.item_type == ConfigItemDataType.UNSIGNED_INT:
-                    item_value : int = self._read_uint(section_name,
-                                                        section_item)
+                    item_value: int = self._read_uint(section_name,
+                                                      section_item)
+
+                else:
+                    raise ValueError(
+                        f"Unsupported config item type '{section_item.item_type}' "
+                        f"for item '{section_item.item_name}' in section "
+                        f"'{section_name}'"
+                    )
 
                 if section_name not in self._config_items:
                     self._config_items[section_name] = {}
@@ -246,7 +254,8 @@ class Configuration:
             lowered = value.strip().lower()
             if lowered in ["true", "1", "yes", "on"]:
                 return True
-            elif lowered in ["false", "0", "no", "off"]:
+
+            if lowered in ["false", "0", "no", "off"]:
                 return False
 
         raise ValueError(
