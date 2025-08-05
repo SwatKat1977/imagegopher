@@ -19,10 +19,13 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
 import os
+import typing
 import quart
-from microservice import Microservice
-from version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
-                    VERSION_POST
+from configuration_layout import CONFIGURATION_LAYOUT
+from shared.configuration.configuration import Configuration
+from shared.microservice import Microservice
+from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
+                           VERSION_POST
 
 
 class Service(Microservice):
@@ -31,6 +34,8 @@ class Service(Microservice):
     def __init__(self, quart_instance: quart.Quart) -> None:
         super().__init__()
         self._quart: quart.Quart = quart_instance
+
+        self._config: typing.Optional[Configuration] = None
 
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -63,11 +68,28 @@ class Service(Microservice):
         self._logger.info("Copyright 2025 Image Gopher Development Team")
 
         config_file = os.getenv("GOPHER_GATHERER_CONFIG", None)
-        config_file_required: bool = os.getenv("GOPHER_GATHERER_CONFIG_REQUIRED",
-                                               "false").lower() == "true"
+        config_file_required: bool = os.getenv(
+            "GOPHER_GATHERER_CONFIG_REQUIRED",
+            "false").lower() == "true"
         if not config_file and config_file_required:
             print("[FATAL ERROR] Configuration file missing!")
             return False
+
+        self._config = Configuration()
+        self._config.configure(CONFIGURATION_LAYOUT,
+                               config_file,
+                               config_file_required)
+
+        try:
+            self._config.process_config()
+
+        except ValueError as ex:
+            self._logger.critical("Configuration error : %s", ex)
+            return False
+
+        self._logger.setLevel(self._config.get_entry("logging", "log_level"))
+
+        self._display_configuration_details()
 
         return True
 

@@ -17,7 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
-from configuration import configuration_setup
+from shared.configuration import configuration_setup
 
 CONFIGURATION_LAYOUT = configuration_setup.ConfigurationSetup(
     {
