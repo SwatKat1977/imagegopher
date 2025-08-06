@@ -51,46 +51,48 @@ class DatabaseLayer(BaseSqliteInterface):
         self._logger = logger.getChild(__name__)
         self._state_object: StateObject = state_object
 
-    def add_base_path(self, base_path: str) -> bool:
+    def add_base_path(self, base_path: str) -> typing.Optional[bool]:
         """ Add new base path to the database """
 
-        if self.valid_base_path(base_path):
+        query: str = "INSERT INTO base_path(path) VALUES(?)"
+
+        exists = self.base_path_exists(base_path)
+
+        if exists is None:
+            return None
+
+        if not exists:
             raise ValueError("Base path already exists!")
 
-        try:
-            self._sql_insert(SQL_INSERT_BASE_PATH, (base_path,))
+        row_id: typing.Optional[int] = self._safe_insert_query(
+            query,
+            (base_path,),
+            error_message="Unable to add new base path",
+            log_level=logging.CRITICAL
+        )
 
-        except ValueError as ex:
-            self._logger.error(f"SQL insert statement failed, reason: {ex}!")
-            return False
+        if row_id is None:
+            return None
 
-        self._update_config_item_library_hash()
+        # self._update_config_item_library_hash()
+
         return True
 
-    def base_path_exists(self, base_path: str) -> bool:
+    def base_path_exists(self, base_path: str) -> typing.Optional[bool]:
         """ Check if base path exists already """
 
         query: str = "SELECT id FROM base_path WHERE PATH = ?"
 
-        """
-        def run_query(self,
-                      query: str,
-                      params: tuple = (),
-                      fetch_one: bool = False,
-                      commit: bool = False) -> Any:
-        """
+        row = self._safe_query(query,
+                               (base_path,),
+                               "Unable to check if base path exists",
+                               log_level=logging.CRITICAL,
+                               fetch_one=True)
 
-        try:
-            result = self.run_query(query, (base_path,), fetch_one=True)
-            result = cursor.execute("SELECT rowid FROM base_path WHERE PATH = ?",
-                                    (base_path,))
-
-        except sqlite3.Error as ex:
-            self._logger.error(f"SQL select statement failed, reason: {ex}!")
+        if row is None:
             return False
 
-        raw_results : list = result.fetchall()
-        return len(raw_results) > 0
+        return bool(row)
 
     def _safe_query(self,
                     query: str,
@@ -100,6 +102,7 @@ class DatabaseLayer(BaseSqliteInterface):
                     fetch_one: bool = False,
                     commit: bool = False
                     ) -> typing.Optional[typing.Any]:
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         """
         Safely execute a database query with standardized exception handling,
         logging, and database health state updates.
