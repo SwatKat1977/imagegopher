@@ -108,6 +108,9 @@ class GatherProcess:
                 file_dir: str = entry.removeprefix(gatherer.document_root)
                 file_dir = file_dir if not file_dir else file_dir[1:]
 
+                for file_entry in gathered_images[entry]:
+                    print(file_entry)
+
                 print(f"[DIR] {file_dir}")
 
         execution_time: float = time.time() - start_time
