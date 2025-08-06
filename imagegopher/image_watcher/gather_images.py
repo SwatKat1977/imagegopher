@@ -69,13 +69,19 @@ class ImageGatherer:
             for file in files:
                 filename = os.path.join(subdir, file)
 
+                file_subdir = subdir.removeprefix(self._document_root)
+                file_subdir = file_subdir if not file_subdir \
+                    else file_subdir[1:]
+
                 if self._is_file_readable(filename) and self._is_image(filename):
+                    modified_time = int(os.path.getmtime(filename))
+
                     file_hash = self._generate_file_hash(filename)
                     self._logger.debug(
                         "File Gatherer detected image: '%s' with hash '%s'",
                         filename, file_hash)
                     scan_time = int(round(time.time() * 1000))
-                    entry = (file, file_hash, scan_time)
+                    entry = (file_subdir, file, scan_time, modified_time)
                     images_list[subdir].append(entry)
 
             if not images_list[subdir]:
