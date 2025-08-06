@@ -20,10 +20,10 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 from dataclasses import dataclass
 import logging
 import typing
-from shared.configuration.configuration import Configuration
 from gather_images import ImageGatherer
+from shared.configuration.configuration import Configuration
 
-ONE_MINUTE_IN_SECONDS : int = 60
+ONE_MINUTE_IN_SECONDS: int = 60
 
 
 @dataclass

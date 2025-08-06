@@ -19,7 +19,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import logging
 import typing
-from service_health_enums import ComponentDegradationLevel
+from service_health_enum import ComponentDegradationLevel
 from state_object import StateObject
 from shared.base_sqlite_interface import BaseSqliteInterface, \
                                          SqliteInterfaceException

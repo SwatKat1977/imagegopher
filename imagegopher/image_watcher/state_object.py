@@ -19,7 +19,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import time
 from dataclasses import dataclass, field
-from service_health_enums import ComponentDegradationLevel
+from service_health_enum import ComponentDegradationLevel
 
 
 @dataclass
