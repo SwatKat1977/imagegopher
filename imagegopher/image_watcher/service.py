@@ -116,7 +116,7 @@ class Service(Microservice):
 
     async def _main_loop(self) -> None:
         """ Main microservice loop. """
-        self._gather_process.process_files()
+        await self._gather_process.process_files()
 
     async def _shutdown(self):
         """ Shutdown logic. """

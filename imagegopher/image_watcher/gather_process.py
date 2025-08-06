@@ -68,7 +68,7 @@ class GatherProcess:
         self._logger = logger.getChild(__name__)
         self._state = GatherProcessState()
 
-    def process_files(self):
+    async def process_files(self):
         """ Attempt to gather image files that are either new or modified """
 
         # If in fatal degraded state, stop gathering to preserve system
@@ -76,7 +76,8 @@ class GatherProcess:
             return
 
         interval: int = self._config.get_entry("general",
-                                               "directory_scan_interval")
+                                               "directory_scan_interval") * \
+                        ONE_MINUTE_IN_SECONDS
         start_time: float = time.time()
         process_now: bool = False
 
@@ -101,7 +102,8 @@ class GatherProcess:
             return
 
         for gatherer in self._gatherers:
-            print(gatherer)
+            gathered_images = await gatherer.gather()
+            print(gathered_images)
 
         execution_time: float = time.time() - start_time
         self._logger.info("Execution time : %.3f (seconds)",
@@ -125,10 +127,16 @@ class GatherProcess:
                 "base paths, gatherer fully degraded"
 
         for base_path_id, base_path_path in base_paths:
+            # Create base path entry for each base path
             entry: BasePathEntry = BasePathEntry(base_path_id, base_path_path)
             base_path_entries.append(entry)
             self._logger.debug("Cached base path: ID: %d : '%s'",
                                base_path_id, base_path_path)
+
+            # Create a gatherer for the base path
+            gatherer: ImageGatherer = ImageGatherer(self._logger,
+                                                    base_path_path)
+            self._gatherers.append(gatherer)
 
         self._state.base_paths = sorted(base_path_entries, key=lambda x: x.path)
 
