@@ -110,10 +110,6 @@ class GatherProcess:
 
                 print(f"[DIR] {file_dir}")
 
-                #                directory : str = img[0].removeprefix(gatherer.document_root)
-                # directory = directory if not directory else directory[1:]
-            #print(gathered_images)
-
         execution_time: float = time.time() - start_time
         self._logger.info("Execution time : %.3f (seconds)",
                           execution_time)
