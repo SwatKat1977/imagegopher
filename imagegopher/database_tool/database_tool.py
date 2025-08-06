@@ -61,12 +61,12 @@ class DatabaseBuilder:
                                   tables.sql_create_base_path_table):
             return False
 
-        if not self._create_table("file_hash",
-                                  tables.sql_create_file_hash_table ):
+        if not self._create_table("file_entry",
+                                  tables.sql_create_file_entry_table ):
             return False
 
         try:
-            self._database.run_query(tables.sql_create_index_for_file_hash,
+            self._database.run_query(tables.sql_create_index_for_file_entry,
                                      commit=True)
 
         except SqliteInterfaceException as ex:
