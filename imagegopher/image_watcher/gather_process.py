@@ -19,6 +19,7 @@ along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 from dataclasses import dataclass, field
 import logging
+import os
 import time
 import typing
 from gather_images import ImageGatherer
@@ -47,7 +48,7 @@ class GatherProcessState:
     """
     last_process_time: float = 0
     refresh_cache: bool = True
-    base_paths: list[BasePathEntry] = field(default_factory=list)
+    base_paths: list[BasePathEntry] = field(default_factory=dict)
     degraded_state: bool = False
 
 
@@ -108,10 +109,12 @@ class GatherProcess:
                 file_dir: str = entry.removeprefix(gatherer.document_root)
                 file_dir = file_dir if not file_dir else file_dir[1:]
 
+                full_path: str = os.path.join(gatherer.document_root, file_dir)
+                print(f"[DIR] {file_dir} | {full_path}")
+                print(self._state.base_paths[gatherer.document_root].path)
+
                 for file_entry in gathered_images[entry]:
                     print(file_entry)
-
-                print(f"[DIR] {file_dir}")
 
         execution_time: float = time.time() - start_time
         self._logger.info("Execution time : %.3f (seconds)",
@@ -126,7 +129,7 @@ class GatherProcess:
 
         base_paths = self._db_layer.get_base_paths()
 
-        base_path_entries: list = []
+        base_path_entries: dict = {}
 
         if base_paths is None:
             self._state_object.service_health = \
@@ -137,7 +140,7 @@ class GatherProcess:
         for base_path_id, base_path_path in base_paths:
             # Create base path entry for each base path
             entry: BasePathEntry = BasePathEntry(base_path_id, base_path_path)
-            base_path_entries.append(entry)
+            base_path_entries[base_path_path] = entry
             self._logger.debug("Cached base path: ID: %d : '%s'",
                                base_path_id, base_path_path)
 
@@ -146,7 +149,9 @@ class GatherProcess:
                                                     base_path_path)
             self._gatherers.append(gatherer)
 
-        self._state.base_paths = sorted(base_path_entries, key=lambda x: x.path)
+        self._state.base_paths = dict(sorted(base_path_entries.items()))
+        # self._state.base_paths = sorted(base_path_entries, key=lambda x: x.path)
+        print(self._state.base_paths)
 
         self._logger.info("Successfully cached base paths...")
 

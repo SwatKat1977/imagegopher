@@ -76,7 +76,7 @@ class ImageGatherer:
                 if self._is_file_readable(filename) and self._is_image(filename):
                     modified_time = int(os.path.getmtime(filename))
 
-                    file_hash = self._generate_file_hash(filename)
+                    file_hash = self.generate_file_hash(filename)
                     self._logger.debug(
                         "File Gatherer detected image: '%s' with hash '%s'",
                         filename, file_hash)
