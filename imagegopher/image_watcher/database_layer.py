@@ -106,6 +106,20 @@ class DatabaseLayer(BaseSqliteInterface):
 
         return rows
 
+    def get_file_entries_for_directory(self, base_path: str, sub_dir: str) -> list:
+
+        sql: str = ("SELECT file_entry.* "
+                    "FROM file_entry "
+                    "JOIN base_path ON file_entry.base_path_id = base_path.id "
+                    "WHERE base_path.path = ? AND file_entry.subdir = ?")
+
+        return self._safe_query(
+            sql,
+            (base_path, sub_dir),
+            error_message="Unable to get file entries for directory",
+            log_level=logging.CRITICAL
+        )
+
     def _safe_query(self,
                     query: str,
                     values: tuple | None,
