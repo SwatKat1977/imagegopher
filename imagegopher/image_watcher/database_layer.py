@@ -94,9 +94,21 @@ class DatabaseLayer(BaseSqliteInterface):
 
         return bool(row)
 
+    def get_base_paths(self) -> list:
+        """ Get all the base paths from the database """
+
+        query: str = "SELECT id, path FROM base_path"
+
+        rows = self._safe_query(query,
+                                (),
+                                "Unable to get all base paths",
+                                log_level=logging.CRITICAL)
+
+        return rows
+
     def _safe_query(self,
                     query: str,
-                    values: tuple,
+                    values: tuple | None,
                     error_message: str,
                     log_level: int = logging.CRITICAL,
                     fetch_one: bool = False,

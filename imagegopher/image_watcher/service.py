@@ -22,7 +22,9 @@ import os
 import typing
 import quart
 from configuration_layout import CONFIGURATION_LAYOUT
+from database_layer import DatabaseLayer
 from gather_process import GatherProcess
+from state_object import StateObject
 from shared.configuration.configuration import Configuration
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
@@ -37,6 +39,8 @@ class Service(Microservice):
         self._quart: quart.Quart = quart_instance
 
         self._config: typing.Optional[Configuration] = None
+        self._db_layer: typing.Optional[DatabaseLayer] = None
+        self._state_object: typing.Optional[StateObject] = None
         self._gather_process: typing.Optional[GatherProcess] = None
 
         # Setup logging
@@ -93,14 +97,26 @@ class Service(Microservice):
 
         self._display_configuration_details()
 
-        self._gather_process = GatherProcess(self._logger, self._config)
+        db_file: str = self._config.get_entry("database", "filename")
+        if not os.path.isfile(db_file):
+            self._logger.error("Database file '%s' does NOT exist!", db_file)
+            return False
+
+        self._state_object = StateObject()
+        self._db_layer = DatabaseLayer(
+            self._logger,
+            self._config.get_entry("database", "filename"),
+            self._state_object)
+        self._gather_process = GatherProcess(self._logger,
+                                             self._config,
+                                             self._db_layer,
+                                             self._state_object)
 
         return True
 
     async def _main_loop(self) -> None:
         """ Main microservice loop. """
-        # self._gather_process.process_files()
-
+        self._gather_process.process_files()
 
     async def _shutdown(self):
         """ Shutdown logic. """
