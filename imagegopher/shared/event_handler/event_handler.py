@@ -17,27 +17,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+import asyncio
+import inspect
 from collections import deque
 from typing import Callable, Deque, Dict
 from shared.events.event import Event
 
 
 class EventHandler:
-    __slots__ = ["_event_handlers", "_events"]
+    __slots__ = ["_event_handlers", "_events", "_lock"]
 
     def __init__(self) -> None:
-        self._event_handlers: Dict[int, Callable] = {}
+        self._event_handlers: Dict[int, Callable[[Event], None]] = {}
         self._events: Deque[Event] = deque()
+        self._lock = asyncio.Lock()
 
-    def queue_event(self, event: Event) -> bool:
-        # Add event to queue.  Validate that the event is known about, if it is
+    async def queue_event(self, event: Event) -> bool:
+        # Add event to queue.  Validate that the event is known about. If it is
         # then add it to the event queue for processing otherwise return
         # unknown status.
         if event.event_id not in self._event_handlers:
             # Invalid event id
             return False
 
-        self._events.append(event)
+        async with self._lock:
+            self._events.append(event)
 
         return True
 
@@ -47,28 +51,34 @@ class EventHandler:
 
         self._event_handlers[event_id] = callback
 
-    def process_next_event(self) -> None:
-        # If nothing is ready for processing, return.
-        if len(self._events) == 0:
+    async def process_next_event(self) -> None:
+        """Process the next event in the queue, if any."""
+
+        async with self._lock:
+            if not self._events:
+                return
+
+            event = self._events.popleft()
+
+        handler = self._event_handlers.get(event.event_id)
+        if not handler:
+            # Optionally log unknown event
             return
 
-        #  Get the first event from the list.
-        event = self._events[0]
+        if inspect.iscoroutinefunction(handler):
+            await handler(event)
+        else:
+            handler(event)
 
-        # Check to see event ID is valid, if an unknown event ID then it will
-        # get quietly deleted.
-        if event.event_id not in self._event_handlers:
-            self._events.popleft()
-            return
+    async def delete_all_events(self) -> None:
+        """Clear all queued events."""
+        async with self._lock:
+            self._events.clear()
 
-        #  Call the event processing function, this is defined by the
-        #  registered callback function.
-        self._event_handlers[event.event_id](event)
-
-        #  Once the event has been handled, delete it.. The event handler
-        # function should deal with issues with the event and therefore
-        #  deleting should be safe.
-        self._events.popleft()
-
-    def delete_all_events(self) -> None:
-        self._events.clear()
+    async def process_all_events(self) -> None:
+        """Process all events currently in the queue."""
+        while True:
+            async with self._lock:
+                if not self._events:
+                    break
+            await self.process_next_event()
