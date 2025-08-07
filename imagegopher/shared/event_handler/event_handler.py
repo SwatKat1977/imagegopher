@@ -18,24 +18,66 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 import asyncio
+import importlib
 import inspect
 from collections import deque
+import pkgutil
+import types
 from typing import Callable, Deque, Dict
-from shared.events.event import Event
+from shared.event_handler.event import Event
 
 
-class EventHandler:
+def eventhandler(event_id: int):
+    """
+    Decorator to mark a function as an event handler for a specific event ID.
+
+    Args:
+        event_id (int): The unique identifier for the event type that the
+                        function handles.
+
+    Returns:
+        Callable: The decorated function with an '_event_id' attribute set.
+    """
+    def decorator(func):
+        func._event_id = event_id
+        return func
+
+    return decorator
+
+
+class EventManager:
+    """
+    Manages registration, queuing, and processing of events.
+
+    Attributes:
+        _event_handlers (Dict[int, Callable[[Event], None]]): Mapping of event
+                             IDs to their handler functions.
+        _events (Deque[Event]): Queue of pending events to be processed.
+        _lock (asyncio.Lock): Async lock to ensure thread-safe event queue
+                              manipulation.
+    """
     __slots__ = ["_event_handlers", "_events", "_lock"]
 
     def __init__(self) -> None:
+        """
+        Initialize a new EventManager instance.
+        """
         self._event_handlers: Dict[int, Callable[[Event], None]] = {}
         self._events: Deque[Event] = deque()
         self._lock = asyncio.Lock()
 
     async def queue_event(self, event: Event) -> bool:
-        # Add event to queue.  Validate that the event is known about. If it is
-        # then add it to the event queue for processing otherwise return
-        # unknown status.
+        """
+        Queue an event for later processing if it has a registered handler.
+
+        Args:
+            event (Event): The event instance to queue.
+
+        Returns:
+            bool: True if the event was successfully queued; False if no
+                  handler is registered.
+        """
+
         if event.event_id not in self._event_handlers:
             # Invalid event id
             return False
@@ -45,14 +87,65 @@ class EventHandler:
 
         return True
 
+    def auto_register_handlers(self, base_module: types.ModuleType) -> None:
+        """
+        Automatically scan a base module and register all functions decorated
+        with @handle_event.
+
+        Args:
+            base_module (types.ModuleType): The base Python module to scan for
+                                            event handler functions.
+
+        Raises:
+            RuntimeError: If duplicate event IDs are detected during
+                          registration.
+        """
+        for _, module_name, _ in pkgutil.iter_modules(base_module.__path__):
+            full_module_name = f"{base_module.__name__}.{module_name}"
+            module = importlib.import_module(full_module_name)
+
+            # Top-level functions
+            for _, obj in inspect.getmembers(module, inspect.isfunction):
+                event_id = getattr(obj, "_event_id", None)
+                if event_id is not None:
+                    if event_id in self._event_handlers:
+                        raise RuntimeError(f"Duplicate event id {event_id}")
+                    self.register_event(event_id, obj)
+
+            # Class methods
+            for _, cls in inspect.getmembers(module, inspect.isclass):
+                for _, method in inspect.getmembers(cls, inspect.isfunction):
+                    event_id = getattr(method, "_event_id", None)
+                    if event_id is not None:
+                        if event_id in self._event_handlers:
+                            raise RuntimeError(f"Duplicate event id {event_id}")
+                        self.register_event(event_id, method)
+
     def register_event(self, event_id: int, callback: Callable) -> None:
+        """
+        Register a handler function for a specific event ID.
+
+        Args:
+            event_id (int): The unique event identifier.
+            callback (Callable): The function to call when the event occurs.
+
+        Raises:
+            RuntimeError: If the event ID is already registered.
+        """
         if event_id in self._event_handlers:
             raise RuntimeError(f"Duplicate event id ({event_id})")
 
         self._event_handlers[event_id] = callback
 
     async def process_next_event(self) -> None:
-        """Process the next event in the queue, if any."""
+        """
+        Process the next event in the queue by invoking its registered handler.
+
+        If the handler is a coroutine function, it is awaited.
+
+        Does nothing if the event queue is empty or if no handler is registered
+        for the event.
+        """
 
         async with self._lock:
             if not self._events:
@@ -71,12 +164,18 @@ class EventHandler:
             handler(event)
 
     async def delete_all_events(self) -> None:
-        """Clear all queued events."""
+        """
+        Clear all events currently queued for processing.
+        """
         async with self._lock:
             self._events.clear()
 
     async def process_all_events(self) -> None:
-        """Process all events currently in the queue."""
+        """
+        Process all events currently in the queue until it is empty.
+
+        Events added during processing will also be processed.
+        """
         while True:
             async with self._lock:
                 if not self._events:
