@@ -171,15 +171,29 @@ class GatherProcess:
                                     if item[2] == filename), None)
                 print("Cache", cache_match)
 
-                full_path: str = os.path.join(gatherer.document_root, subdir)
+                full_path: str = os.path.join(gatherer.document_root,
+                                              subdir,
+                                              filename)
 
                 # If there is a match with the cache, check that the last
                 # modified date matches. If no match then generate a new
                 # hash and update the record with new modified date and hash.
                 if cache_match is not None:
+                    db_id, _, db_filename, db_hash, db_modified = cache_match
                     print("Do matching here")
+
+                    modified_time = int(os.path.getmtime(full_path))
+                    if modified_time != db_modified:
+                        print("=> UPDATE EXISTING ENTRY HERE....")
+
+                    else:
+                        print("=> MATCH : DO NOTHING")
+
+                    print(f"=> Modified : {modified_time} | expecting {cache_match[4]}")
 
                 # New record, create hash and then add the new record to
                 # the database.
                 else:
-                    print("new entry")
+                    print("=> NEW ENTRY")
+                    file_hash = gatherer.generate_file_hash(full_path)
+                    print("    HASH:", file_hash)
