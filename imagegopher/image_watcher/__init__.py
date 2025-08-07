@@ -22,6 +22,8 @@ import os
 import sys
 from quart import Quart
 from service import Service
+from shared.event_manager.event_manager import EventManager
+import image_watcher
 
 
 app = Quart(__name__)
@@ -30,6 +32,7 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 SERVICE_APP: Service = Service(app)
+EVENT_MANAGER: EventManager = EventManager()
 
 
 @app.before_serving
@@ -40,7 +43,11 @@ async def startup() -> None:
     if not await SERVICE_APP.initialise():
         os._exit(1)
 
+    # Register your event handlers
+    EVENT_MANAGER. auto_register_handlers(image_watcher)
+
     app.background_task = asyncio.create_task(SERVICE_APP.run())
+    app.event_manager_task = asyncio.create_task(background_event_loop())
 
 
 @app.after_serving
@@ -56,3 +63,24 @@ async def shutdown() -> None:
             await task
         except asyncio.CancelledError:
             pass
+
+    # Cancel event loop task
+    if task := getattr(app, "event_loop_task", None):
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+    # Clean up events
+    await EVENT_MANAGER.delete_all_events()
+
+
+# Event loop processor
+async def background_event_loop() -> None:
+    try:
+        while True:
+            await EVENT_MANAGER.process_next_event()
+            await asyncio.sleep(0.01)
+    except asyncio.CancelledError:
+        print("Background event loop cancelled.")
