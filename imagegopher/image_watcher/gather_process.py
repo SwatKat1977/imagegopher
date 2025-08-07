@@ -103,42 +103,7 @@ class GatherProcess:
             return
 
         for gatherer in self._gatherers:
-            gathered_images = await gatherer.gather()
-
-            for entry in gathered_images.keys():
-                # Remove the document root from the directory, if there is one
-                # then remove the delimiter.
-                subdir: str = entry.removeprefix(gatherer.document_root)
-                subdir = subdir if not subdir else subdir[1:]
-
-                # To improve performance, cache all file entries for the
-                # subdirectory and only create a hash if:
-                # 1) Entry does not exist
-                # 2) Entry exists, but last modified is different
-                records = self._db_layer.get_file_entries_for_directory(
-                    gatherer.document_root, subdir)
-
-                print(self._state.base_paths[gatherer.document_root].path)
-
-                for file_entry in gathered_images[entry]:
-                    _, filename, scan_time, modified_time = file_entry
-
-                    cache_match = next((item for item in records
-                                        if item[2] == filename), None)
-                    print("Cache", cache_match)
-
-                    full_path: str = os.path.join(gatherer.document_root, subdir)
-
-                    # If there is a match with the cache, check that the last
-                    # modified date matches. If no match then generate a new
-                    # hash and update the record with new modified date and hash.
-                    if cache_match is not None:
-                        print("Do matching here")
-
-                    # New record, create hash and then add the new record to
-                    # the database.
-                    else:
-                        print("new entry")
+            await self._gather_images(gatherer)
 
         execution_time: float = time.time() - start_time
         self._logger.info("Execution time : %.3f (seconds)",
@@ -180,3 +145,41 @@ class GatherProcess:
         self._logger.info("Successfully cached base paths...")
 
         return True
+
+    async def _gather_images(self, gatherer: ImageGatherer):
+        gathered_images = await gatherer.gather()
+
+        for entry in gathered_images.keys():
+            # Remove the document root from the directory, if there is one
+            # then remove the delimiter.
+            subdir: str = entry.removeprefix(gatherer.document_root)
+            subdir = subdir if not subdir else subdir[1:]
+
+            # To improve performance, cache all file entries for the
+            # subdirectory and only create a hash if:
+            # 1) Entry does not exist
+            # 2) Entry exists, but last modified is different
+            records = self._db_layer.get_file_entries_for_directory(
+                gatherer.document_root, subdir)
+
+            print(self._state.base_paths[gatherer.document_root].path)
+
+            for file_entry in gathered_images[entry]:
+                _, filename, scan_time, modified_time = file_entry
+
+                cache_match = next((item for item in records
+                                    if item[2] == filename), None)
+                print("Cache", cache_match)
+
+                full_path: str = os.path.join(gatherer.document_root, subdir)
+
+                # If there is a match with the cache, check that the last
+                # modified date matches. If no match then generate a new
+                # hash and update the record with new modified date and hash.
+                if cache_match is not None:
+                    print("Do matching here")
+
+                # New record, create hash and then add the new record to
+                # the database.
+                else:
+                    print("new entry")
