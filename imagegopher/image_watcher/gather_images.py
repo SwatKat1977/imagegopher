@@ -69,13 +69,16 @@ class ImageGatherer:
             for file in files:
                 filename = os.path.join(subdir, file)
 
+                file_subdir = subdir.removeprefix(self._document_root)
+                file_subdir = file_subdir if not file_subdir \
+                    else file_subdir[1:]
+
                 if self._is_file_readable(filename) and self._is_image(filename):
-                    file_hash = self._generate_file_hash(filename)
+                    modified_time = int(os.path.getmtime(filename))
                     self._logger.debug(
-                        "File Gatherer detected image: '%s' with hash '%s'",
-                        filename, file_hash)
+                        "File Gatherer detected image: '%s'", filename)
                     scan_time = int(round(time.time() * 1000))
-                    entry = (file, file_hash, scan_time)
+                    entry = (file_subdir, file, scan_time, modified_time)
                     images_list[subdir].append(entry)
 
             if not images_list[subdir]:
@@ -83,25 +86,7 @@ class ImageGatherer:
 
         return images_list
 
-    def _is_image(self, filename: str) -> bool:
-        """
-        Check to see if the file has been detected as an image type.
-
-        Args:
-            filename (str): File name with path
-
-        Returns:
-            bool: True if an image, otherwise false is returned
-        """
-        try:
-            with Image.open(filename) as img:
-                img.verify()
-                return True
-
-        except (IOError, SyntaxError):
-            return False
-
-    def _generate_file_hash(self, filename: str) -> str:
+    def generate_file_hash(self, filename: str) -> str:
         """
         Generate an MD5 hash of the specified file.
 
@@ -124,6 +109,24 @@ class ImageGatherer:
                 chunk = file_handle.read(block_size)
 
         return md5_object.hexdigest()
+
+    def _is_image(self, filename: str) -> bool:
+        """
+        Check to see if the file has been detected as an image type.
+
+        Args:
+            filename (str): File name with path
+
+        Returns:
+            bool: True if an image, otherwise false is returned
+        """
+        try:
+            with Image.open(filename) as img:
+                img.verify()
+                return True
+
+        except (IOError, SyntaxError):
+            return False
 
     def _is_file_readable(self, filename: str) -> bool:
         """

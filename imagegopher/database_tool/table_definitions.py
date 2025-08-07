@@ -24,16 +24,17 @@ sql_create_base_path_table: str = """
         path TEXT NOT NULL UNIQUE
     ); """
 
-sql_create_file_hash_table: str = """
-    CREATE TABLE IF NOT EXISTS file_hash (
+sql_create_file_entry_table: str = """
+    CREATE TABLE IF NOT EXISTS file_entry (
         base_path_id INTEGER NOT NULL,
+        subdir TEXT NOT NULL,
         filename TEXT NOT NULL,
         hash TEXT NOT NULL,
+        last_modified INTEGER NOT NULL,
         PRIMARY KEY (base_path_id, filename),
-        FOREIGN KEY (base_path_id) REFERENCES base_path(id),
-        UNIQUE (base_path_id, filename)
+        FOREIGN KEY (base_path_id) REFERENCES base_path(id)
     ); """
 
-sql_create_index_for_file_hash: str = """
-    CREATE INDEX IF NOT EXISTS idx_file_hash_hash ON file_hash (hash);
+sql_create_index_for_file_entry: str = """
+    CREATE INDEX IF NOT EXISTS idx_file_entry_hash ON file_entry (hash);
     """
