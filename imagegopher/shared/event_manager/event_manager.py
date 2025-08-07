@@ -24,7 +24,7 @@ from collections import deque
 import pkgutil
 import types
 from typing import Callable, Deque, Dict
-from shared.event_handler.event import Event
+from shared.event_manager.event import Event
 
 
 def eventhandler(event_id: int):
