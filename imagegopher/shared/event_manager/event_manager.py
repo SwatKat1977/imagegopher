@@ -36,10 +36,10 @@ def eventhandler(event_id: int):
                         function handles.
 
     Returns:
-        Callable: The decorated function with an '_event_id' attribute set.
+        Callable: The decorated function with an 'event_id' attribute set.
     """
     def decorator(func):
-        func._event_id = event_id
+        func.event_id = event_id
         return func
 
     return decorator
@@ -106,7 +106,7 @@ class EventManager:
 
             # Top-level functions
             for _, obj in inspect.getmembers(module, inspect.isfunction):
-                event_id = getattr(obj, "_event_id", None)
+                event_id = getattr(obj, "event_id", None)
                 if event_id is not None:
                     if event_id in self._event_handlers:
                         raise RuntimeError(f"Duplicate event id {event_id}")
@@ -115,7 +115,7 @@ class EventManager:
             # Class methods
             for _, cls in inspect.getmembers(module, inspect.isclass):
                 for _, method in inspect.getmembers(cls, inspect.isfunction):
-                    event_id = getattr(method, "_event_id", None)
+                    event_id = getattr(method, "event_id", None)
                     if event_id is not None:
                         if event_id in self._event_handlers:
                             raise RuntimeError(f"Duplicate event id {event_id}")
