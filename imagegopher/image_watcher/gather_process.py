@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 from dataclasses import dataclass, field
+import hashlib
 import logging
 import os
 import time
@@ -195,5 +196,30 @@ class GatherProcess:
                 # the database.
                 else:
                     print("=> NEW ENTRY")
-                    file_hash = gatherer.generate_file_hash(full_path)
-                    print("    HASH:", file_hash)
+                    file_hash = self._generate_file_hash(full_path)
+
+    def _generate_file_hash(self, filename: str) -> str:
+        """
+        Generate an MD5 hash of the specified file.
+
+        Reads the file in binary mode and computes its MD5 checksum using
+        a fixed block size to efficiently handle large files.
+
+        Args:
+            filename (str): The path to the file for which to compute the hash.
+
+        Returns:
+            str: The hexadecimal MD5 hash of the file's contents.
+        """
+        md5_object = hashlib.md5()
+        block_size = 128 * md5_object.block_size
+
+        with open(filename, 'rb') as file_handle:
+            chunk = file_handle.read(block_size)
+            while chunk:
+                md5_object.update(chunk)
+                chunk = file_handle.read(block_size)
+
+        self._logger.debug("Hash generated for '%s' : '%s'", filename,
+                           md5_object.hexdigest())
+        return md5_object.hexdigest()
