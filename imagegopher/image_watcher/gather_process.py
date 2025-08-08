@@ -92,6 +92,17 @@ class GatherProcess:
             EventId.UPDATE_EXISTING_FILE_ENTRY.value,
             self._update_file_details)
 
+    @property
+    def gatherers(self) -> typing.List[ImageGatherer]:
+        """
+        List of ImageGatherer instances managed by this object.
+
+        Returns:
+            List[ImageGatherer]: The current list of registered image
+                                 gatherers.
+        """
+        return self._gatherers
+
     async def process_files(self):
         """ Attempt to gather image files that are either new or modified """
 
