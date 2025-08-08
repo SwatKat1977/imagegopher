@@ -79,6 +79,17 @@ class DatabaseLayer(BaseSqliteInterface):
         return new_row_id
 
     def add_file_entry(self, parameters: tuple):
+        """
+        Insert a new file entry into the database.
+
+        Args:
+            parameters (tuple): A tuple containing
+                (base_path_id, subdir, filename, file_hash, last_modified).
+
+        Returns:
+            Optional[int]: The row ID of the inserted file entry if successful,
+                           otherwise None.
+        """
         base_path_id, subdir, filename, file_hash, last_modified = parameters
 
         query: str = ("INSERT INTO file_entry(base_path_id, subdir, filename, "
@@ -95,8 +106,15 @@ class DatabaseLayer(BaseSqliteInterface):
         return row_id
 
     def get_base_path_id(self, base_path: str) -> typing.Optional[int]:
-        """ Check if base path exists already """
+        """
+        Retrieve the ID of the base path if it exists.
 
+        Args:
+            base_path (str): The base path string to search for.
+
+        Returns:
+            Optional[int]: The ID of the base path if found, else None.
+        """
         query: str = "SELECT id FROM base_path WHERE PATH = ?"
 
         row = self._safe_query(query,
@@ -111,8 +129,19 @@ class DatabaseLayer(BaseSqliteInterface):
         return 0 if not row else row
 
     def get_base_paths(self) -> list:
-        """ Get all the base paths from the database """
+        """
+        Retrieve all base path records from the database.
 
+        Returns:
+            list: A list of tuples, where each tuple contains:
+                - id (int): The base path ID.
+                - path (str): The base path string.
+
+        Notes:
+            This method queries the `base_path` table for all records.
+            If the query fails, an empty list may be returned depending on
+            `_safe_query`'s implementation. Errors are logged at CRITICAL level.
+        """
         query: str = "SELECT id, path FROM base_path"
 
         rows = self._safe_query(query,
@@ -123,7 +152,22 @@ class DatabaseLayer(BaseSqliteInterface):
         return rows
 
     def get_file_entries_for_directory(self, base_path: str, sub_dir: str) -> list:
+        """
+        Retrieve all file entries for a specific directory.
 
+        Args:
+            base_path (str): The root path associated with the base path record.
+            sub_dir (str): The subdirectory under the base path to filter by.
+
+        Returns:
+            list: A list of matching file entry records, or an empty list if none are found.
+
+        Notes:
+            This method performs a SQL join between `file_entry` and `base_path`
+            to match entries based on the given base path and subdirectory.
+            Errors are logged at CRITICAL level, and an empty list is returned
+            if the query fails.
+        """
         sql: str = ("SELECT file_entry.* "
                     "FROM file_entry "
                     "JOIN base_path ON file_entry.base_path_id = base_path.id "
