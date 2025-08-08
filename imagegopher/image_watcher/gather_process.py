@@ -184,7 +184,7 @@ class GatherProcess:
                 gatherer.document_root, subdir)
 
             for file_entry in gathered_images[entry]:
-                _, filename, scan_time, modified_time = file_entry
+                _, filename, _, modified_time = file_entry
 
                 cache_match = next((item for item in records
                                     if item[3] == filename), None)
@@ -197,7 +197,7 @@ class GatherProcess:
                 # modified date matches. If no match then generate a new
                 # hash and update the record with new modified date and hash.
                 if cache_match is not None:
-                    db_id, root_id, _, db_filename, db_hash, db_modified = cache_match
+                    _, _, _, _, _, db_modified = cache_match
 
                     modified_time = int(os.path.getmtime(full_path))
                     if modified_time != db_modified:
