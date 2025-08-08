@@ -114,6 +114,9 @@ class EventManager:
             RuntimeError: If duplicate event IDs are detected during
                           registration.
         """
+        # To keep track of registered (class, method_name) pairs this run
+        seen_methods = set()
+
         for _, module_name, _ in pkgutil.iter_modules(base_module.__path__):
             full_module_name = f"{base_module.__name__}.{module_name}"
             module = importlib.import_module(full_module_name)
@@ -131,6 +134,12 @@ class EventManager:
                 for _, method in inspect.getmembers(cls, inspect.isfunction):
                     event_id = getattr(method, "event_id", None)
                     if event_id is not None:
+
+                        # Avoid duplicates of the same method
+                        if (cls.__name__, method.__name__) in seen_methods:
+                            continue
+                        seen_methods.add((cls.__name__, method.__name__))
+
                         if event_id in self._event_handlers:
                             raise RuntimeError(f"Duplicate event id {event_id}")
                         self.register_event(event_id, method)
