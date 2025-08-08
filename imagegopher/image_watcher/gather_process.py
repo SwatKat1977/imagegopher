@@ -213,7 +213,8 @@ class GatherProcess:
                     modified_time = int(os.path.getmtime(full_path))
                     if modified_time != db_modified:
                         event_body: dict = {
-                            "root": gatherer.document_root,
+                            "base_path_dir": gatherer.document_root,
+                            "base_path_id": entry.id,
                             "sub_directory": subdir,
                             "filename": filename,
                             "last_modified": modified_time
