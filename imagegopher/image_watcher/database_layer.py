@@ -79,16 +79,14 @@ class DatabaseLayer(BaseSqliteInterface):
         return new_row_id
 
     def add_file_entry(self,
-                       base_path: str,
+                       base_path_id: int,
                        subdir: str,
                        filename: str,
                        file_hash: str,
                        last_modified: int):
 
-        query: str = ("INSERT INTO file_entry(base_path_id, subdir, filename"
+        query: str = ("INSERT INTO file_entry(base_path_id, subdir, filename, "
                       "hash, last_modified) VALUES(?,?,?,?,?)")
-
-        base_path_id = -99
         params = (base_path_id, subdir, filename, file_hash, last_modified)
 
         row_id: typing.Optional[int] = self._safe_insert_query(
@@ -98,7 +96,7 @@ class DatabaseLayer(BaseSqliteInterface):
             log_level=logging.CRITICAL
         )
 
-        return False if row_id is None else row_id
+        return row_id
 
     def get_base_path_id(self, base_path: str) -> typing.Optional[int]:
         """ Check if base path exists already """

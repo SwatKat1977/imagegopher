@@ -26,12 +26,12 @@ sql_create_base_path_table: str = """
 
 sql_create_file_entry_table: str = """
     CREATE TABLE IF NOT EXISTS file_entry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         base_path_id INTEGER NOT NULL,
         subdir TEXT NOT NULL,
         filename TEXT NOT NULL,
         hash TEXT NOT NULL,
         last_modified INTEGER NOT NULL,
-        PRIMARY KEY (base_path_id, filename),
         FOREIGN KEY (base_path_id) REFERENCES base_path(id)
     ); """
 
