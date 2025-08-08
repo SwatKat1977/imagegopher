@@ -21,5 +21,14 @@ import enum
 
 
 class EventId(enum.Enum):
+    """
+    Enumeration of event identifiers used by the event system.
+
+    Attributes:
+        ADD_NEW_FILE_ENTRY (int): Event triggered when a new file record
+            should be created in the system.
+        UPDATE_EXISTING_FILE_ENTRY (int): Event triggered when an existing
+            file record should be updated with new details.
+    """
     ADD_NEW_FILE_ENTRY = 0
     UPDATE_EXISTING_FILE_ENTRY = 1

@@ -23,7 +23,7 @@ import sys
 from quart import Quart
 from service import Service
 from shared.event_manager.event_manager import EventManager
-import image_watcher
+import image_watcher    # pylint: disable=import-self
 
 
 app = Quart(__name__)
@@ -79,6 +79,17 @@ async def shutdown() -> None:
 
 # Event loop processor
 async def background_event_loop() -> None:
+    """
+    Continuously processes queued events from the EventManager.
+
+    This coroutine runs in the background for the lifetime of the application,
+    retrieving the singleton EventManager instance and calling its
+    `process_next_event` method to handle the next available event, if any.
+
+    The loop sleeps briefly (0.01 seconds) between iterations to prevent
+    excessive CPU usage. It exits gracefully when cancelled, such as during
+    application shutdown.
+    """
     try:
         while True:
             event_manager: EventManager = await EventManager.get_instance()

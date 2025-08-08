@@ -78,12 +78,8 @@ class DatabaseLayer(BaseSqliteInterface):
 
         return new_row_id
 
-    def add_file_entry(self,
-                       base_path_id: int,
-                       subdir: str,
-                       filename: str,
-                       file_hash: str,
-                       last_modified: int):
+    def add_file_entry(self, parameters: tuple):
+        base_path_id, subdir, filename, file_hash, last_modified = parameters
 
         query: str = ("INSERT INTO file_entry(base_path_id, subdir, filename, "
                       "hash, last_modified) VALUES(?,?,?,?,?)")

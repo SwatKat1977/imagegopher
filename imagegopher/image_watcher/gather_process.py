@@ -257,11 +257,8 @@ class GatherProcess:
         self._logger.debug("Added new file entry: '%s' with hash '%s'",
                            full_path, file_hash)
 
-        return self._db_layer.add_file_entry(base_path_id,
-                                             sub_dir,
-                                             filename,
-                                             file_hash,
-                                             last_modified)
+        params = (base_path_id, sub_dir, filename, file_hash, last_modified)
+        return self._db_layer.add_file_entry(params)
 
     def _update_file_details(self, event: Event):
         """
