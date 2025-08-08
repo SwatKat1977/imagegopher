@@ -29,13 +29,21 @@ from state_object import StateObject, ComponentDegradationLevel
 from event_ids import EventId
 from shared.configuration.configuration import Configuration
 from shared.event_manager.event import Event
-from shared.event_manager.event_manager import EventManager, eventhandler
+from shared.event_manager.event_manager import EventManager
 
 ONE_MINUTE_IN_SECONDS: int = 60
 
 
 @dataclass
 class BasePathEntry:
+    """
+    Represents a base path entry with a unique identifier and its corresponding
+    file system path.
+
+    Attributes:
+        id (int): The unique identifier of the base path.
+        path (str): The filesystem path associated with this entry.
+    """
     id: int
     path: str
 
@@ -67,6 +75,7 @@ class GatherProcess:
                  db_layer: DatabaseLayer,
                  state_object: StateObject,
                  event_manager: EventManager) -> None:
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         self._config = config
         self._db_layer = db_layer
         self._state_object = state_object
