@@ -178,7 +178,7 @@ class EventManager:
 
         handler = self._event_handlers.get(event.event_id)
         if not handler:
-            # Optionally log unknown event
+            # Cannot find handler for the event...
             return
 
         if inspect.iscoroutinefunction(handler):

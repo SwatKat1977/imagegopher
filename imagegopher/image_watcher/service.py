@@ -26,6 +26,7 @@ from database_layer import DatabaseLayer
 from gather_process import GatherProcess
 from state_object import StateObject
 from shared.configuration.configuration import Configuration
+from shared.event_manager.event_manager import EventManager
 from shared.microservice import Microservice
 from shared.version import VERSION_MAJOR, VERSION_MINOR, VERSION_BUGFIX, \
                            VERSION_POST
@@ -53,7 +54,7 @@ class Service(Microservice):
         self._logger.addHandler(console_stream)
         self._logger.setLevel("INFO")
 
-    def _initialise(self) -> bool:
+    async def _initialise(self) -> bool:
         """
         Method for the application initialisation.  It should return a boolean
        (True => Successful, False => Unsuccessful).
@@ -110,7 +111,8 @@ class Service(Microservice):
         self._gather_process = GatherProcess(self._logger,
                                              self._config,
                                              self._db_layer,
-                                             self._state_object)
+                                             self._state_object,
+                                             await EventManager.get_instance())
 
         return True
 
