@@ -51,34 +51,56 @@ class DatabaseLayer(BaseSqliteInterface):
         self._logger = logger.getChild(__name__)
         self._state_object: StateObject = state_object
 
-    def add_base_path(self, base_path: str) -> typing.Optional[bool]:
+    def add_base_path(self, base_path: str) -> typing.Optional[int]:
         """ Add new base path to the database """
 
         query: str = "INSERT INTO base_path(path) VALUES(?)"
 
-        exists = self.base_path_exists(base_path)
+        row_id: int = self.get_base_path_id(base_path)
 
-        if exists is None:
+        # Check to see if get_base_path_id failed to get id.
+        if row_id is None:
             return None
 
-        if not exists:
-            raise ValueError("Base path already exists!")
+        # Base path already exists.
+        if not row_id:
+            return 0
 
-        row_id: typing.Optional[int] = self._safe_insert_query(
+        new_row_id: typing.Optional[int] = self._safe_insert_query(
             query,
             (base_path,),
             error_message="Unable to add new base path",
             log_level=logging.CRITICAL
         )
 
-        if row_id is None:
+        if new_row_id is None:
             return None
 
-        # self._update_config_item_library_hash()
+        return new_row_id
 
-        return True
+    def add_file_entry(self,
+                       base_path: str,
+                       subdir: str,
+                       filename: str,
+                       file_hash: str,
+                       last_modified: int):
 
-    def base_path_exists(self, base_path: str) -> typing.Optional[bool]:
+        query: str = ("INSERT INTO file_entry(base_path_id, subdir, filename"
+                      "hash, last_modified) VALUES(?,?,?,?,?)")
+
+        base_path_id = -99
+        params = (base_path_id, subdir, filename, file_hash, last_modified)
+
+        row_id: typing.Optional[int] = self._safe_insert_query(
+            query,
+            params,
+            error_message="Unable to add new file entry",
+            log_level=logging.CRITICAL
+        )
+
+        return False if row_id is None else row_id
+
+    def get_base_path_id(self, base_path: str) -> typing.Optional[int]:
         """ Check if base path exists already """
 
         query: str = "SELECT id FROM base_path WHERE PATH = ?"
@@ -90,9 +112,9 @@ class DatabaseLayer(BaseSqliteInterface):
                                fetch_one=True)
 
         if row is None:
-            return False
+            return None
 
-        return bool(row)
+        return 0 if not row else row
 
     def get_base_paths(self) -> list:
         """ Get all the base paths from the database """
