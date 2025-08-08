@@ -204,6 +204,8 @@ class GatherProcess:
                                               subdir,
                                               filename)
 
+                entry = self._state.base_paths.get(gatherer.document_root)
+
                 # If there is a match with the cache, check that the last
                 # modified date matches. If no match then generate a new
                 # hash and update the record with new modified date and hash.
@@ -226,9 +228,6 @@ class GatherProcess:
                 # New record, create hash and then add the new record to
                 # the database.
                 else:
-
-                    entry = self._state.base_paths.get(gatherer.document_root)
-
                     modified_time = int(os.path.getmtime(full_path))
                     event_body: dict = {
                         "base_path_dir": gatherer.document_root,
