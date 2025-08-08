@@ -58,13 +58,28 @@ class EventManager:
     """
     __slots__ = ["_event_handlers", "_events", "_lock"]
 
+    _instance = None  # Singleton instance
+
     def __init__(self) -> None:
         """
         Initialize a new EventManager instance.
         """
+
+        if EventManager._instance is not None:
+            raise RuntimeError("Use EventManager.get_instance() instead of creating a new instance.")
+
         self._event_handlers: Dict[int, Callable[[Event], None]] = {}
         self._events: Deque[Event] = deque()
         self._lock = asyncio.Lock()
+
+    @classmethod
+    def get_instance(cls) -> "EventManager":
+        """
+        Get the singleton instance of EventManager.
+        """
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     async def queue_event(self, event: Event) -> bool:
         """
