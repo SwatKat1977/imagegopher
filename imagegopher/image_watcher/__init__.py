@@ -43,7 +43,8 @@ async def startup() -> None:
         os._exit(1)
 
     # Register your event handlers
-    EventManager.get_instance().auto_register_handlers(image_watcher)
+    event_manager: EventManager = await EventManager.get_instance()
+    event_manager.auto_register_handlers(image_watcher)
 
     app.background_task = asyncio.create_task(SERVICE_APP.run())
     app.event_manager_task = asyncio.create_task(background_event_loop())
@@ -72,14 +73,16 @@ async def shutdown() -> None:
             pass
 
     # Clean up events
-    await EventManager.get_instance().delete_all_events()
+    event_manager: EventManager = await EventManager.get_instance()
+    await event_manager.delete_all_events()
 
 
 # Event loop processor
 async def background_event_loop() -> None:
     try:
         while True:
-            await EventManager.get_instance().process_next_event()
+            event_manager: EventManager = await EventManager.get_instance()
+            await event_manager.process_next_event()
             await asyncio.sleep(0.01)
     except asyncio.CancelledError:
         print("Background event loop cancelled.")
