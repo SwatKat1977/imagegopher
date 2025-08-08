@@ -22,4 +22,4 @@ import enum
 
 class EventId(enum.Enum):
     ADD_NEW_FILE_ENTRY = 0
-    MODIFY_EXISTING_FILE_ENTRY = 1
+    UPDATE_EXISTING_FILE_ENTRY = 1
