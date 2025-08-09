@@ -84,7 +84,7 @@ class Microservice(ABC):
         Returns:
             Boolean: True => Successful, False => Unsuccessful.
         """
-        if self._initialise() is True:
+        if await self._initialise() is True:
             self._is_initialised = True
             return True
 
@@ -140,7 +140,7 @@ class Microservice(ABC):
 
         self._logger.info('Microservice shutdown complete...')
 
-    def _initialise(self) -> bool:
+    async def _initialise(self) -> bool:
         """
         Microservice initialisation.  It should return a boolean
         (True => Successful, False => Unsuccessful).

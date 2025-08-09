@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
 from dataclasses import dataclass, field
+import hashlib
 import logging
 import os
 import time
@@ -25,13 +26,24 @@ import typing
 from gather_images import ImageGatherer
 from database_layer import DatabaseLayer
 from state_object import StateObject, ComponentDegradationLevel
+from event_ids import EventId
 from shared.configuration.configuration import Configuration
+from shared.event_manager.event import Event
+from shared.event_manager.event_manager import EventManager
 
 ONE_MINUTE_IN_SECONDS: int = 60
 
 
 @dataclass
 class BasePathEntry:
+    """
+    Represents a base path entry with a unique identifier and its corresponding
+    file system path.
+
+    Attributes:
+        id (int): The unique identifier of the base path.
+        path (str): The filesystem path associated with this entry.
+    """
     id: int
     path: str
 
@@ -48,26 +60,48 @@ class GatherProcessState:
     """
     last_process_time: float = 0
     refresh_cache: bool = True
-    base_paths: list[BasePathEntry] = field(default_factory=dict)
+    base_paths: typing.Dict[str, BasePathEntry] = field(default_factory=dict)
     degraded_state: bool = False
 
 
 class GatherProcess:
     """ Class for the file gathering functionality """
-    __slots__ = ["_config", "_db_layer", "_gatherers", "_logger", "_state",
-                 "_state_object"]
+    __slots__ = ["_config", "_db_layer", "_event_manager", "_gatherers",
+                 "_logger", "_state", "_state_object"]
 
     def __init__(self,
                  logger: logging.Logger,
                  config: Configuration,
                  db_layer: DatabaseLayer,
-                 state_object: StateObject) -> None:
+                 state_object: StateObject,
+                 event_manager: EventManager) -> None:
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         self._config = config
         self._db_layer = db_layer
         self._state_object = state_object
         self._gatherers: typing.List[ImageGatherer] = []
         self._logger = logger.getChild(__name__)
         self._state = GatherProcessState()
+        self._event_manager = event_manager
+
+        self._event_manager.register_event(
+            EventId.ADD_NEW_FILE_ENTRY.value,
+            self._add_new_file_details)
+
+        self._event_manager.register_event(
+            EventId.UPDATE_EXISTING_FILE_ENTRY.value,
+            self._update_file_details)
+
+    @property
+    def gatherers(self) -> typing.List[ImageGatherer]:
+        """
+        List of ImageGatherer instances managed by this object.
+
+        Returns:
+            List[ImageGatherer]: The current list of registered image
+                                 gatherers.
+        """
+        return self._gatherers
 
     async def process_files(self):
         """ Attempt to gather image files that are either new or modified """
@@ -139,8 +173,6 @@ class GatherProcess:
             self._gatherers.append(gatherer)
 
         self._state.base_paths = dict(sorted(base_path_entries.items()))
-        # self._state.base_paths = sorted(base_path_entries, key=lambda x: x.path)
-        print(self._state.base_paths)
 
         self._logger.info("Successfully cached base paths...")
 
@@ -162,38 +194,105 @@ class GatherProcess:
             records = self._db_layer.get_file_entries_for_directory(
                 gatherer.document_root, subdir)
 
-            print(self._state.base_paths[gatherer.document_root].path)
-
             for file_entry in gathered_images[entry]:
-                _, filename, scan_time, modified_time = file_entry
+                _, filename, _, modified_time = file_entry
 
                 cache_match = next((item for item in records
-                                    if item[2] == filename), None)
-                print("Cache", cache_match)
+                                    if item[3] == filename), None)
 
                 full_path: str = os.path.join(gatherer.document_root,
                                               subdir,
                                               filename)
 
+                entry = self._state.base_paths.get(gatherer.document_root)
+
                 # If there is a match with the cache, check that the last
                 # modified date matches. If no match then generate a new
                 # hash and update the record with new modified date and hash.
                 if cache_match is not None:
-                    db_id, _, db_filename, db_hash, db_modified = cache_match
-                    print("Do matching here")
+                    _, _, _, _, _, db_modified = cache_match
 
                     modified_time = int(os.path.getmtime(full_path))
                     if modified_time != db_modified:
-                        print("=> UPDATE EXISTING ENTRY HERE....")
-
-                    else:
-                        print("=> MATCH : DO NOTHING")
-
-                    print(f"=> Modified : {modified_time} | expecting {cache_match[4]}")
+                        event_body: dict = {
+                            "base_path_dir": gatherer.document_root,
+                            "base_path_id": entry.id,
+                            "sub_directory": subdir,
+                            "filename": filename,
+                            "last_modified": modified_time
+                        }
+                        event: Event = Event(EventId.UPDATE_EXISTING_FILE_ENTRY.value,
+                                             event_body)
+                        await self._event_manager.queue_event(event)
 
                 # New record, create hash and then add the new record to
                 # the database.
                 else:
-                    print("=> NEW ENTRY")
-                    file_hash = gatherer.generate_file_hash(full_path)
-                    print("    HASH:", file_hash)
+                    modified_time = int(os.path.getmtime(full_path))
+                    event_body: dict = {
+                        "base_path_dir": gatherer.document_root,
+                        "base_path_id": entry.id,
+                        "sub_directory": subdir,
+                        "filename": filename,
+                        "last_modified": modified_time
+                    }
+                    event: Event = Event(EventId.ADD_NEW_FILE_ENTRY.value,
+                                         event_body)
+                    await self._event_manager.queue_event(event)
+
+    def _generate_file_hash(self, filename: str) -> str:
+        """
+        Generate an MD5 hash of the specified file.
+
+        Reads the file in binary mode and computes its MD5 checksum using
+        a fixed block size to efficiently handle large files.
+
+        Args:
+            filename (str): The path to the file for which to compute the hash.
+
+        Returns:
+            str: The hexadecimal MD5 hash of the file's contents.
+        """
+        md5_object = hashlib.md5()
+        block_size = 128 * md5_object.block_size
+
+        with open(filename, 'rb') as file_handle:
+            chunk = file_handle.read(block_size)
+            while chunk:
+                md5_object.update(chunk)
+                chunk = file_handle.read(block_size)
+
+        return md5_object.hexdigest()
+
+    def _add_new_file_details(self, event: Event) -> typing.Optional[int]:
+        base_path_dir: str = event.body["base_path_dir"]
+        base_path_id: int = event.body["base_path_id"]
+        sub_dir: str = event.body["sub_directory"]
+        filename: str = event.body["filename"]
+        last_modified: int = int(event.body["last_modified"])
+
+        full_path: str = os.path.join(base_path_dir, sub_dir, filename)
+        file_hash = self._generate_file_hash(full_path)
+
+        self._logger.debug("Added new file entry: '%s' with hash '%s'",
+                           full_path, file_hash)
+
+        params = (base_path_id, sub_dir, filename, file_hash, last_modified)
+        return self._db_layer.add_file_entry(params)
+
+    def _update_file_details(self, event: Event):
+        base_path_dir: str = event.body["base_path_dir"]
+        base_path_id: int = event.body["base_path_id"]
+        sub_dir: str = event.body["sub_directory"]
+        filename: str = event.body["filename"]
+        last_modified: int = int(event.body["last_modified"])
+
+        full_path: str = os.path.join(base_path_dir, sub_dir, filename)
+        file_hash = self._generate_file_hash(full_path)
+
+        params = (base_path_id, sub_dir, filename, file_hash, last_modified)
+
+        self._logger.debug("Updating existing file entry: '%s' with hash '%s'",
+                           full_path, file_hash)
+
+        self._db_layer.update_file_entry(params)

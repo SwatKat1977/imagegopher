@@ -23,7 +23,7 @@ import sys
 from quart import Quart
 from service import Service
 from shared.event_manager.event_manager import EventManager
-import image_watcher
+import image_watcher    # pylint: disable=import-self
 
 
 app = Quart(__name__)
@@ -32,7 +32,6 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 SERVICE_APP: Service = Service(app)
-EVENT_MANAGER: EventManager = EventManager()
 
 
 @app.before_serving
@@ -44,7 +43,8 @@ async def startup() -> None:
         os._exit(1)
 
     # Register your event handlers
-    EVENT_MANAGER. auto_register_handlers(image_watcher)
+    event_manager: EventManager = await EventManager.get_instance()
+    event_manager.auto_register_handlers(image_watcher)
 
     app.background_task = asyncio.create_task(SERVICE_APP.run())
     app.event_manager_task = asyncio.create_task(background_event_loop())
@@ -65,7 +65,7 @@ async def shutdown() -> None:
             pass
 
     # Cancel event loop task
-    if task := getattr(app, "event_loop_task", None):
+    if task := getattr(app, "event_manager_task", None):
         task.cancel()
         try:
             await task
@@ -73,14 +73,27 @@ async def shutdown() -> None:
             pass
 
     # Clean up events
-    await EVENT_MANAGER.delete_all_events()
+    event_manager: EventManager = await EventManager.get_instance()
+    await event_manager.delete_all_events()
 
 
 # Event loop processor
 async def background_event_loop() -> None:
+    """
+    Continuously processes queued events from the EventManager.
+
+    This coroutine runs in the background for the lifetime of the application,
+    retrieving the singleton EventManager instance and calling its
+    `process_next_event` method to handle the next available event, if any.
+
+    The loop sleeps briefly (0.01 seconds) between iterations to prevent
+    excessive CPU usage. It exits gracefully when cancelled, such as during
+    application shutdown.
+    """
     try:
         while True:
-            await EVENT_MANAGER.process_next_event()
+            event_manager: EventManager = await EventManager.get_instance()
+            await event_manager.process_next_event()
             await asyncio.sleep(0.01)
     except asyncio.CancelledError:
         print("Background event loop cancelled.")

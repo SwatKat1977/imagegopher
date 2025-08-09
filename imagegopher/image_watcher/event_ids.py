@@ -17,24 +17,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.If not, see < https://www.gnu.org/licenses/>.
 """
+import enum
 
-sql_create_base_path_table: str = """
-    CREATE TABLE IF NOT EXISTS base_path (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        path TEXT NOT NULL UNIQUE
-    ); """
 
-sql_create_file_entry_table: str = """
-    CREATE TABLE IF NOT EXISTS file_entry (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        base_path_id INTEGER NOT NULL,
-        subdir TEXT NOT NULL,
-        filename TEXT NOT NULL,
-        hash TEXT NOT NULL,
-        last_modified INTEGER NOT NULL,
-        FOREIGN KEY (base_path_id) REFERENCES base_path(id)
-    ); """
-
-sql_create_index_for_file_entry: str = """
-    CREATE INDEX IF NOT EXISTS idx_file_entry_hash ON file_entry (hash);
+class EventId(enum.Enum):
     """
+    Enumeration of event identifiers used by the event system.
+
+    Attributes:
+        ADD_NEW_FILE_ENTRY (int): Event triggered when a new file record
+            should be created in the system.
+        UPDATE_EXISTING_FILE_ENTRY (int): Event triggered when an existing
+            file record should be updated with new details.
+    """
+    ADD_NEW_FILE_ENTRY = 0
+    UPDATE_EXISTING_FILE_ENTRY = 1

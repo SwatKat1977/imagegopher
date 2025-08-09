@@ -58,6 +58,9 @@ class EventManager:
     """
     __slots__ = ["_event_handlers", "_events", "_lock"]
 
+    _instance = None  # Singleton instance
+    _instance_lock = asyncio.Lock()
+
     def __init__(self) -> None:
         """
         Initialize a new EventManager instance.
@@ -65,6 +68,17 @@ class EventManager:
         self._event_handlers: Dict[int, Callable[[Event], None]] = {}
         self._events: Deque[Event] = deque()
         self._lock = asyncio.Lock()
+
+    @classmethod
+    async def get_instance(cls) -> "EventManager":
+        """
+        Async-safe singleton accessor.
+        Ensures only one instance is created even under concurrent calls.
+        """
+        async with cls._instance_lock:
+            if cls._instance is None:
+                cls._instance = cls()
+        return cls._instance
 
     async def queue_event(self, event: Event) -> bool:
         """
@@ -100,6 +114,9 @@ class EventManager:
             RuntimeError: If duplicate event IDs are detected during
                           registration.
         """
+        # To keep track of registered (class, method_name) pairs this run
+        seen_methods = set()
+
         for _, module_name, _ in pkgutil.iter_modules(base_module.__path__):
             full_module_name = f"{base_module.__name__}.{module_name}"
             module = importlib.import_module(full_module_name)
@@ -117,6 +134,12 @@ class EventManager:
                 for _, method in inspect.getmembers(cls, inspect.isfunction):
                     event_id = getattr(method, "event_id", None)
                     if event_id is not None:
+
+                        # Avoid duplicates of the same method
+                        if (cls.__name__, method.__name__) in seen_methods:
+                            continue
+                        seen_methods.add((cls.__name__, method.__name__))
+
                         if event_id in self._event_handlers:
                             raise RuntimeError(f"Duplicate event id {event_id}")
                         self.register_event(event_id, method)
@@ -155,7 +178,7 @@ class EventManager:
 
         handler = self._event_handlers.get(event.event_id)
         if not handler:
-            # Optionally log unknown event
+            # Cannot find handler for the event...
             return
 
         if inspect.iscoroutinefunction(handler):
