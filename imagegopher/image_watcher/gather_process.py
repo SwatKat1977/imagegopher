@@ -281,12 +281,18 @@ class GatherProcess:
         return self._db_layer.add_file_entry(params)
 
     def _update_file_details(self, event: Event):
-        """
-                            event_body: dict = {
-                        "root": gatherer.document_root,
-                        "sub_directory": subdir,
-                        "filename": filename,
-                        "last_modified": modified_time
-                    }
-        """
-        self._logger.info("update_existing file | %s %s", event.event_id, event.body)
+        base_path_dir: str = event.body["base_path_dir"]
+        base_path_id: int = event.body["base_path_id"]
+        sub_dir: str = event.body["sub_directory"]
+        filename: str = event.body["filename"]
+        last_modified: int = int(event.body["last_modified"])
+
+        full_path: str = os.path.join(base_path_dir, sub_dir, filename)
+        file_hash = self._generate_file_hash(full_path)
+
+        params = (base_path_id, sub_dir, filename, file_hash, last_modified)
+
+        self._logger.debug("Updating existing file entry: '%s' with hash '%s'",
+                           full_path, file_hash)
+
+        self._db_layer.update_file_entry(params)

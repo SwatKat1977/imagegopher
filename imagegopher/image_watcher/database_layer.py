@@ -105,6 +105,22 @@ class DatabaseLayer(BaseSqliteInterface):
 
         return row_id
 
+    def update_file_entry(self, parameters: tuple):
+        base_path_id, subdir, filename, file_hash, last_modified = parameters
+
+        query: str = ("UPDATE file_entry "
+                      "SET hash=?, last_modified=? "
+                      "WHERE base_path_id=? AND subdir=? AND filename=?")
+        query_params: tuple = (file_hash, last_modified, base_path_id, subdir,
+                               filename)
+        result = self._safe_query(query,
+                                  query_params,
+                                  "Unable to update file entry",
+                                  logging.CRITICAL,
+                                  commit=True)
+
+        return True if result is not None else False
+
     def get_base_path_id(self, base_path: str) -> typing.Optional[int]:
         """
         Retrieve the ID of the base path if it exists.
